@@ -1,0 +1,338 @@
+const model = {
+    midiInputs: [],
+    midiOutputs: [],
+    selectedInput: null,
+    selectedOutput: null,
+    single_device: true,
+    midiAuth: false,
+    serialPort: null,
+    writer: null,
+    reader: null,
+    readData: [],
+    zones: 1,
+    currentTouch: { touch: [], name: null, tube: null, date: "4/10" },
+    receivedArray: [],
+    testPersist: [],
+    library: [{ touch: [], name: "dragon Touch", tube: null, date: "4/10", created: "Henrique", description: "a dragon touch" }, { touch: [], name: "dragon Touch II", tube: null, date: "4/10", created: "Henrique", description: "a dragon touch" },{ touch: [], name: "weird Touch", tube: null, date: "4/10", created: "Henrique", description: "a dragon touch" }, { touch: [], name: "eletric feeling", tube: null, date: "4/10", created: "Henrique", description: "a dragon touch" }],
+    isSerialConnected: false,
+
+    midiRecording: [],  // Array to store the recorded MIDI sequence
+    isRecording: false,  // Flag to determine if recording is active
+    recordingStartTime: null,  // Timestamp to measure delays between recorded events
+
+    // Function to toggle MIDI recording state
+    toggleRecording() {
+        this.isRecording = !this.isRecording;
+        if (this.isRecording) {
+            this.startRecording();
+        } else {
+            this.stopRecording();
+        }
+    },
+
+   
+    startRecording() {
+        this.midiRecording = [];  
+        this.recordingStartTime = performance.now(); 
+        console.log("MIDI recording started.");
+    },
+
+  
+    stopRecording() {
+        console.log("MIDI recording stopped.");
+    },
+
+    recordMIDIMessage(status, note, velocity) {
+        if (!this.isRecording) return;
+
+        const timestamp = performance.now() - this.recordingStartTime;
+        this.midiRecording.push({
+            status,
+            note,
+            velocity,
+            timestamp
+        });
+        console.log(`Recorded MIDI message: [status: ${status}, note: ${note}, velocity: ${velocity}, time: ${timestamp}]`);
+        console.log(this.midiRecording)
+    },
+
+    async playbackRecording() {
+        if (!this.midiRecording.length) {
+            console.log("No MIDI sequence recorded.");
+            return;
+        }
+
+        let previousTimestamp = 0;
+
+        for (let i = 0; i < this.midiRecording.length; i++) {
+            const { status, note, velocity, timestamp } = this.midiRecording[i];
+            const delay = timestamp - previousTimestamp;
+            await new Promise(resolve => setTimeout(resolve, delay));
+            this.sendMidiMessage(status, note, velocity); 
+            previousTimestamp = timestamp;
+        }
+
+        console.log("MIDI playback completed.");
+    },
+
+    sendMidiMessage(status, note, velocity) {
+        if (this.selectedOutput) {
+            const midiMessage = [status, note, velocity];
+            this.selectedOutput.send(midiMessage);
+            console.log(`Sent MIDI message: [status: ${status}, note: ${note}, velocity: ${velocity}]`);
+        } else {
+            console.error("No MIDI output device selected.");
+        }
+    },
+
+    async connectToSerialAndMIDI() {
+        try {
+            console.log("Connecting to Serial and MIDI...");
+            await this.connectToSerial();
+            await this.initializeMIDI();
+
+            console.log("Successfully connected to both Serial and MIDI.");
+        } catch (error) {
+            console.error("Error connecting to Serial or MIDI:", error);
+        }
+    },
+
+    async initializeMIDI() {
+        try {
+            const midiAccess = await navigator.requestMIDIAccess();
+            this.midiInputs = Array.from(midiAccess.inputs.values());
+            this.midiOutputs = Array.from(midiAccess.outputs.values());
+
+            // Automatically select the first MIDI input and output
+            if (this.midiInputs.length > 0) {
+                this.selectedInput = this.midiInputs[0];
+                console.log(`Selected MIDI Input: ${this.selectedInput.name}`);
+            }
+
+            if (this.midiOutputs.length > 0) {
+                this.selectedOutput = this.midiOutputs[0];
+                console.log(`Selected MIDI Output: ${this.selectedOutput.name}`);
+            }
+
+            // Set midiAuth to true if a device is selected
+            if (this.selectedInput && this.selectedOutput) {
+                this.midiAuth = true;
+                console.log("MIDI devices authenticated.");
+
+                // Listen for MIDI input (including note 127)
+                this.listenForMIDI();
+            }
+        } catch (error) {
+            console.error('Web MIDI API not supported in this browser.', error);
+        }
+    },
+
+    listenForMIDI() {
+        if (this.selectedInput) {
+            this.selectedInput.onmidimessage = (message) => {
+                const [status, note, velocity] = message.data;
+
+                this.recordMIDIMessage(status, note, velocity);
+
+                if (note === 127) {
+                    console.log("MIDI note 127 received, cleaning receivedArray.");
+                    this.receivedArray = []  // Clean receivedArray
+                    console.log("Cleaned receivedArray:", this.receivedArray);
+                }
+            };
+        } else {
+            console.error("No MIDI input selected for listening.");
+        }
+    },
+
+    async performMIDISequence(x) {
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        for (let i = 0; i < x.length; i += 4) {
+            let action = parseInt(x[i]);   // Position 1: Action
+            let time = parseInt(x[i + 1]); // Position 2: Time in milliseconds
+            let velocity = parseInt(x[i + 2]); // Position 3: Velocity
+    
+            switch (action) {
+                case 1:
+                    model.buttonDownNote(67, velocity);  // Middle B
+                    await sleep(time);
+                    model.buttonUpNote(67);
+                    break;
+                case 2:
+                    model.buttonDownNote(60, velocity);  // Middle C
+                    await sleep(time);
+                    model.buttonUpNote(60);
+                    break;
+                case 3:
+                    model.buttonDownNote(71, velocity);  // Middle A
+                    await sleep(time);
+                    model.buttonUpNote(71);
+                    break;
+                case 4:
+                    await sleep(time);  // Idle
+                    break;
+                default:
+                    console.error(`Unknown action: ${action}`);
+            }
+        }
+    },
+
+    async connectToSerial() {
+        try {
+            // Request a port and open a connection
+            this.serialPort = await navigator.serial.requestPort();
+            await this.serialPort.open({ baudRate: 9600 });
+            console.log("Serial port connected");
+
+            this.isSerialConnected = true;  // Set isSerialConnected to true when connected
+            this.writer = this.serialPort.writable.getWriter();
+            this.reader = this.serialPort.readable.getReader();
+            this.readSerialData();
+        } catch (error) {
+            console.error("Failed to connect to serial port:", error);
+            this.isSerialConnected = false;
+        }
+    },
+
+    addName(input) {
+        this.currentTouch.name = input;
+    },
+
+    addAuthor(input) {
+        this.currentTouch.created = input;
+    },
+
+    addCreator() {
+        if (this.model.user) {
+            this.currentTouch.created = this.model.user.displayName;
+        } else {
+            this.currentTouch.created = "unknown";
+        }
+    },
+
+    addTube(input) {
+        this.currentTouch.tube = input;
+    },
+
+    verifySaving() {
+        if (this.currentTouch.name) {
+            this.saveToLibrary();
+        } else {
+            console.log("it needs a name");
+        }
+    },
+
+    saveToLibrary() {
+        this.currentTouch.touch = this.receivedArray;
+        this.testPersist = [...this.testPersist, this.currentTouch];
+        this.currentTouch = { touch: [] };
+    },
+
+    addDescription(input) {
+        this.currentTouch.description = input;
+    },
+
+    addArray() {
+        this.currentTouch.touch.push(this.receivedArray);
+    },
+
+    increaseZone() {
+        if (this.zones <= 5) {
+            this.zones = this.zones + 1;
+        }
+    },
+
+    addZones() {
+        this.currentTouch.zones = this.zones;
+    },
+
+    decreaseZone() {
+        if (this.zones > 1) {
+            this.zones = this.zones - 1;
+        }
+    },
+
+    setMidiInput(x) {
+        this.selectedInput = this.midiInputs[x];
+    },
+
+    setMidiOutput(output) {
+        this.selectedOutput = output;
+    },
+
+    getMidiInputs() {
+        return this.midiInputs;
+    },
+
+    getMidiOutputs() {
+        return this.midiOutputs;
+    },
+
+    selectArray() {
+        console.log(this.testPersist[0].touch);
+    },
+
+    changeSingle() {
+        this.single_device = !this.single_device;
+    },
+
+    sendMidiNote(note, velocity) {
+        if (this.selectedOutput) {
+            const noteOnMessage = [0x90, note, velocity];
+            const noteOffMessage = [0x80, note, 0];
+            this.selectedOutput.send(noteOnMessage);
+            console.log(`MIDI Note ${note} sent with velocity ${velocity}`);
+            setTimeout(() => {
+                this.selectedOutput.send(noteOffMessage);
+                console.log(`MIDI Note ${note} off`);
+            }, 500);  // Note off after 500ms
+        } else {
+            console.error("No MIDI output device selected.");
+        }
+    },
+
+    requestArray() {
+        if (this.selectedOutput || this.serialPort) {
+            this.sendMidiNote(127, 127);
+        }
+    },
+
+    buttonDownNote(note, velocity) {
+        if (this.selectedOutput) {
+            const noteOnMessage = [0x90, note, velocity];
+            this.selectedOutput.send(noteOnMessage);
+            console.log(`MIDI Note ${note} button down with velocity ${velocity}`);
+        }
+    },
+
+    buttonUpNote(note) {
+        if (this.selectedOutput) {
+            const noteOffMessage = [0x80, note, 0];
+            this.selectedOutput.send(noteOffMessage);
+            console.log(`MIDI Note ${note} button up`);
+        }
+    },
+
+    readSerialData: async function () {
+        while (this.serialPort.readable) {
+            try {
+                const { value, done } = await this.reader.read();
+                if (done) {
+                    console.log('Serial port closed');
+                    this.reader.releaseLock();
+                    break;
+                }
+                if (value) {
+                    this.readData.push(value);
+                }
+            } catch (error) {
+                console.error('Error reading data:', error);
+            }
+        }
+    },
+};
+
+export {model}
