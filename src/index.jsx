@@ -24,11 +24,7 @@ function makeRouter(model) {
     <div>
        <Nav model={model} /> 
        <SideMenu model={model} /> 
-    <HashRouter>
-    
-   
-    
-
+      <HashRouter>
           <Routes>
             <Route path="/playground" element={<Playground model={model} />} />
             <Route path="/upload" element={<Upload model={model} />} />
