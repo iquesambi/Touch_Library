@@ -64,6 +64,7 @@ export function UploadView(props) {
         const touchData = {
             name: name,
             description: description,
+            userName: props.userName, // Add userName from props as the author
             createdAt: new Date(), // Timestamp for when it was created
             sequence: touches
         };
@@ -76,12 +77,18 @@ export function UploadView(props) {
             .then(() => {
                 console.log("Touch metadata saved successfully");
                 clearForm();
+            }).then(() => {
+                window.location.hash = "#/chart";
             })
             .catch((error) => {
                 console.error("Error saving touch data:", error);
             });
+
+        // Call ChangeTouchName to update the name in the model
+        if (props.ChangeTouchName) {
+            props.ChangeTouchName(name); // Update the touch name in the model
+        }
     }
-    
 
     // Function to clear the form after save
     function clearForm() {
@@ -145,7 +152,11 @@ export function UploadView(props) {
 
                 <div className="bottom_form">
                     <label>Author</label>
-                    <input className="author" onChange={authorInputACB} />
+                    <input
+                        className="author"
+                        value={props.userName} // Use userName from props
+                        readOnly
+                    />
                     <textarea
                         maxLength="200"
                         placeholder="Add a short description here..."

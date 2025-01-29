@@ -28,12 +28,19 @@ const Upload = observer(function (props) {
             stopReplay={stopACB}
             sequence={props.model.sequence}
             replayStatus={props.model.replaying}
+            userName={props.model.user?.displayName}
+            ChangeTouchName = {changeNameACB}
         />
     );
 
     function decreaseACB() {
         props.model.decreaseZone();
         props.model.addZones();
+    }
+
+    function changeNameACB(name){
+        props.model.changeName(name)
+        console.log(props.model.touchName)
     }
 
     function stopACB() {

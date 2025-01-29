@@ -18,6 +18,11 @@ const model = {
     isSerialConnected: false,
     side: false,
     pot:49,
+    touchName: undefined,
+
+    changeName(name){
+        this.touchName = name
+    },
 
     changePot(x){
         this.pot = x
@@ -478,6 +483,10 @@ const model = {
         }
         console.log("Stopping replay...");
         this.replaying = false;
+    }, 
+
+    savesequence(sequence){
+        this.sequence = sequence
     }
     
     

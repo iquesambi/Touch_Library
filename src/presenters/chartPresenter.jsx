@@ -3,7 +3,7 @@ import { ScatterChartView } from "../views/chartView";
 
 const ScatterChart = observer(
 function (props){
-    return <ScatterChartView />;
+    return <ScatterChartView touch={props.model.touchName} />;
 });
 
 export { ScatterChart }
