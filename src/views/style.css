@@ -14,16 +14,16 @@ ul {
 
 nav{
     width: 20%;
-    margin-top: 50px;
+
     position: fixed;
 }
 
 .main{
     width: 100%;
     height: 100%;
+    margin-top: 50px;
     float: right;
     z-index: 1;
-
 }
 
 .card{
@@ -146,7 +146,7 @@ select{
 
   a{
     text-decoration: none;
-    color: black;
+    color: white;
   }
 
   textarea{
@@ -244,10 +244,227 @@ padding: 20px;
 }
 
 .side{
-  background-color: black;
+  background-color: aqua;
   height: 100vh;
-  z-index: 4;
+  z-index: 1000;
+
+
 }
 h4{
   color: white;
 }
+
+
+.library-view {
+  background-color: white;
+  font-family: "Inter", sans-serif;
+  margin: 0;
+  padding: 20px;
+  overflow: auto;
+  box-sizing: border-box;
+  margin-top: 50px;
+}
+
+.library-view .filter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  gap: 10px;
+}
+
+.library-view .filter select,
+.library-view .filter input {
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  padding: 8px;
+  border: 1px solid #CBD5E1;
+  border-radius: 6px;
+  width: 30%;
+}
+
+.library-view .filter button {
+  background-color: black;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 16px;
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.library-view .cards-container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.library-view .card {
+  background: #fff;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  transition: transform 0.2s;
+  cursor: pointer;
+}
+
+.library-view .card:hover {
+  transform: translateY(-5px);
+}
+
+.library-view .card .card-image {
+  width: 100%;
+  height: 150px;
+  background-color: #000;
+  border-radius: 6px;
+}
+
+.library-view .card .card-content {
+  margin-top: 10px;
+  width: 100%;
+}
+
+.library-view .card .card-content h6 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 10px 0;
+}
+
+.library-view .card .card-content p {
+  font-size: 14px;
+  color: #64748B;
+  margin: 5px 0;
+}
+
+.library-view .card .card-content .author {
+  font-size: 12px;
+  color: #94A3B8;
+}
+
+.library-view button {
+  background-color: black;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.library-view button:disabled {
+  cursor: not-allowed;
+  background-color: #CBD5E1;
+}
+
+.library-view select:focus,
+.library-view input:focus {
+  outline: none;
+  background-color: #F1F5F9;
+}
+
+/* Center the entire PlaygroundView component */
+.playground-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  gap: 1.5rem; /* Add spacing between rows */
+  background-color: white; /* Matches body background */
+  font-family: "Inter", sans-serif; /* Reuse the global font */
+}
+
+/* Row for Inflate and Deflate buttons */
+.button-row {
+  display: flex;
+  gap: 1rem; /* Space between buttons */
+}
+
+/* Single button row for Fully deflate */
+.single-button {
+  display: flex;
+  justify-content: center;
+}
+
+/* Slider container */
+.slider-container {
+  width: 200px; /* Ensures the slider aligns with buttons */
+}
+
+/* Button styles (reuse existing button base) */
+.playground-button {
+  background-color: black;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 16px;
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  cursor: pointer;
+  width: 200px; /* Ensures consistent size with the slider */
+}
+
+/* Range slider */
+.playground-slider {
+  -webkit-appearance: none; /* Remove default styling */
+  width: 100%;
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 6px;
+  outline: none;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.playground-slider:hover {
+  background: #d1d5db; /* Slightly darker on hover */
+}
+
+.playground-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; /* Customize the thumb */
+  width: 20px;
+  height: 20px;
+  background-color: black;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.nav-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.user-profile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+}
+
+.user-image {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.user-name {
+  margin-top: 4px;
+  font-size: 14px;
+  color: #333;
+  text-align: center;
+}
+
+.login-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+

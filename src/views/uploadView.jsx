@@ -1,118 +1,189 @@
-import "./style.css";
-import { storage } from "../../firebaseModel";
-import { uploadBytes, getDownloadURL, ref as ref_storage } from "firebase/storage";
+import { toJS } from "mobx"; // Import MobX's toJS function
+import { db } from "../../firebaseModel"; // Ensure to import Firestore db
 import { useState } from "react";
+import { doc, setDoc } from "firebase/firestore"; // Firestore functions
 
 export function UploadView(props) {
-    const [selectedFiles, setSelectedFiles] = useState([]); // Stores the files for upload
-    var name = undefined
+    const [name, setName] = useState(''); // Touch name state
+    const [description, setDescription] = useState(''); // Description state
+    const [recording, setRecording] = useState(false); // Track recording state
+    const [replaying, setReplaying] = useState(false); // Track replaying state
+    const [touches, setTouches] = useState([]); // Track touches with React state
+
+    function toggleRecording() {
+        if (recording) {
+            props.stop(); // Stop recording
+            console.log("Sequence before toJS:", props.sequence);
+
+            // Use a timeout to allow MobX state to update
+            setTimeout(() => {
+                const updatedTouches = toJS(props.sequence); // Convert MobX sequence to plain object
+                console.log("Converted touches:", updatedTouches);
+
+                // Update the React state to trigger a re-render
+                setTouches(updatedTouches);
+            }, 0);
+        } else {
+            props.start(); // Start recording
+        }
+        setRecording(!recording); // Update recording state
+    }
+
+    function toggleReplay() {
+        if (!replaying) {
+            props.replay(); // Start replay
+            setReplaying(true);
+        } else {
+            props.stopReplay(); // Stop replay
+            setReplaying(false);
+        }
+    }
+
+    // Function to save data to Firestore
+    function saveACB() {
+        if (!name || !description) {
+            alert("Please fill in the name and description.");
+            return;
+        }
+    
+        // Convert MobX sequence to plain object inside the save function
+        const touches = toJS(props.sequence); // Convert MobX sequence to plain object
+        
+        // Log each item in the touches array to check for undefined values
+        touches.forEach((touch, index) => {
+            console.log(`Touch at index ${index}:`, touch);
+        });
+    
+        // Correct Firestore collection reference for metadata
+        const touchRef = doc(db, "touches", name); // Creates or updates a document with the touch name as its ID
+    
+        // Log the data to be saved to Firestore before saving
+        console.log("Touch data to be saved:", touches);
+    
+        // Prepare the touch metadata
+        const touchData = {
+            name: name,
+            description: description,
+            createdAt: new Date(), // Timestamp for when it was created
+            sequence: touches
+        };
+    
+        // Log the final touch data
+        console.log("Final touch data: ", touchData);
+    
+        // Save the metadata to Firestore
+        setDoc(touchRef, touchData)
+            .then(() => {
+                console.log("Touch metadata saved successfully");
+                clearForm();
+            })
+            .catch((error) => {
+                console.error("Error saving touch data:", error);
+            });
+    }
+    
+
+    // Function to clear the form after save
+    function clearForm() {
+        setName('');
+        setDescription('');
+    }
 
     return (
         <div className="main">
             <div className="holder">
-                <input type="text" onChange={nameInputACB} placeholder="touch name"></input>
-                <button onClick={saveACB} disabled={!selectedFiles.length || !props.touch.name}>save</button>
+                <input
+                    type="text"
+                    placeholder="Touch name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)} // Update the name state
+                />
+                <button
+                    onClick={saveACB}
+                    disabled={!name || !description || touches.length === 0} // Disable if name, description, or touches are missing
+                >
+                    Save
+                </button>
+                <button onClick={toggleRecording}>
+                    {recording ? "Stop Recording" : "Start Recording"}
+                </button>
+                <button onClick={toggleReplay}>
+                    {replaying ? "Stop" : "Replay"}
+                </button>
+
                 <div className="chart"></div> {/* Chart rendering will happen here */}
-                
-                <div className="bottom_form">
-                   {/* <label>Zones</label>
-                    <button onClick={decreaseACB}>-</button>
-                    {props.zones}
-                    <button onClick={increaseACB}>+</button>
-                    <label htmlFor="tube">group number</label>
-                    <select id="tube" onChange={tubeInputACB}>
-                        <option disabled defaultValue>group number</option>
-                        <option value="group_1">1</option>
-                        <option value="group_2">2</option>
-                        <option value="group_3">3</option>
-                        <option value="group_4">4</option>
-                    </select>
-                    */}
-                    <label>Author</label>
-                    <input className="author" onChange={authorInputACB}></input>
-                    <textarea maxLength="200" placeholder="Add a short description here..." rows="5" cols="33" onChange={descriptionInputACB}></textarea>
-                    <input type="file" accept="image/*,video/*" onChange={previewImagesACB} multiple></input>
+                <div className="playground-container">
+                    <div className="button-row">
+                        <button
+                            className="playground-button"
+                            onMouseDown={inflateStartACB}
+                            onMouseUp={inflateStopACB}
+                        >
+                            Inflate
+                        </button>
+                        <button
+                            className="playground-button"
+                            onMouseDown={deflateStartACB}
+                            onMouseUp={deflateStopACB}
+                        >
+                            Deflate
+                        </button>
+                    </div>
+                    <div className="single-button">
+                        <button className="playground-button">Fully deflate</button>
+                    </div>
+                    <div className="slider-container">
+                        <input
+                            className="playground-slider"
+                            type="range"
+                            min="0"
+                            max="127"
+                            onChange={sliderChangeACB}
+                        />
+                    </div>
                 </div>
-                
-                 
-                <div id="previewContainer">
-                    {selectedFiles.map((file, index) => (
-                        <div key={index} style={{ display: 'inline-block', position: 'relative', margin: '10px' }}>
-                            <img src={file.preview} alt={`Preview ${index}`} style={{ maxWidth: '200px' }} />
-                            <button onClick={() => deleteImageACB(index)} style={{
-                                position: 'absolute', top: '5px', right: '5px', background: 'red', color: 'white', border: 'none', cursor: 'pointer'
-                            }}>Delete</button>
-                        </div>
-                    ))}
+
+                <div className="bottom_form">
+                    <label>Author</label>
+                    <input className="author" onChange={authorInputACB} />
+                    <textarea
+                        maxLength="200"
+                        placeholder="Add a short description here..."
+                        rows="5"
+                        cols="33"
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)} // Update description state
+                    ></textarea>
                 </div>
             </div>
         </div>
     );
 
-    function previewImagesACB(evt) {
-        const files = Array.from(evt.target.files);
-        const previews = files.map(file => {
-            file.preview = URL.createObjectURL(file);
-            return file;
-        });
-        setSelectedFiles(previews);
+    function inflateStartACB() {
+        console.log("Inflate started");
+        props.inflateDown();
     }
 
-    function deleteImageACB(index) {
-        const newFiles = selectedFiles.filter((_, i) => i !== index);
-        setSelectedFiles(newFiles);
+    function inflateStopACB() {
+        console.log("Inflate stopped");
+        props.inflateUp();
     }
 
-    function saveACB() {
-        let group = "group_1";
-        let subpath = name;
-        
-        selectedFiles.forEach((file) => {
-            const path = file.name;
-            const imageRef = ref_storage(storage, `${group}/${name}/${path}`);
-
-            uploadBytes(imageRef, file).then((snapshot) => {
-                console.log('Uploaded a blob or file!');
-                
-                getDownloadURL(imageRef)
-                    .then((url) => {
-                        console.log('Image URL:', url);
-                        // Optionally handle the URL or display the uploaded image
-                    })
-                    .catch((error) => {
-                        console.error('Error getting download URL:', error);
-                    });
-            }).catch((error) => {
-                console.error('Error uploading file:', error);
-            });
-        });
-
-        // Clear previews after upload if needed
-        setSelectedFiles([]);
+    function deflateStartACB() {
+        console.log("Deflate started");
+        props.deflateDown();
     }
 
-    function tubeInputACB(evt) {
-        props.tube(evt.target.value);
+    function deflateStopACB() {
+        console.log("Deflate stopped");
+        props.deflateUp();
     }
 
-    function decreaseACB() {
-        props.decrease();
+    function sliderChangeACB(evt) {
+        props.potchange(evt.target.value);
     }
 
-    function increaseACB() {
-        props.increase();
-    }
-    
     function authorInputACB(evt) {
         props.author(evt.target.value);
-    }
-
-    function nameInputACB(evt) {
-        props.name(evt.target.value);
-        name = evt.target.value
-    }
-
-    function descriptionInputACB(evt) {
-        props.description(evt.target.value);
     }
 }

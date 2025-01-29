@@ -1,3 +1,4 @@
+
 const model = {
     midiInputs: [],
     midiOutputs: [],
@@ -15,10 +16,20 @@ const model = {
     testPersist: [],
     library: [{ touch: [], name: "dragon Touch", tube: null, date: "4/10", created: "Henrique", description: "a dragon touch" }, { touch: [], name: "dragon Touch II", tube: null, date: "4/10", created: "Henrique", description: "a dragon touch" },{ touch: [], name: "weird Touch", tube: null, date: "4/10", created: "Henrique", description: "a dragon touch" }, { touch: [], name: "eletric feeling", tube: null, date: "4/10", created: "Henrique", description: "a dragon touch" }],
     isSerialConnected: false,
+    side: false,
+    pot:49,
 
-    midiRecording: [],  // Array to store the recorded MIDI sequence
-    isRecording: false,  // Flag to determine if recording is active
-    recordingStartTime: null,  // Timestamp to measure delays between recorded events
+    changePot(x){
+        this.pot = x
+    },
+
+    midiRecording: [],  
+    isRecording: false,  
+    recordingStartTime: null, 
+
+    recording:false,
+    sequence:[],
+    lastEventTime:null,
 
     // Function to toggle MIDI recording state
     toggleRecording() {
@@ -30,12 +41,88 @@ const model = {
         }
     },
 
-   
     startRecording() {
-        this.midiRecording = [];  
-        this.recordingStartTime = performance.now(); 
-        console.log("MIDI recording started.");
+        this.recording = true;
+        this.sequence = [];
+        this.lastEventTime = Date.now();
+        console.log("Recording started...");
+        this.startSerialRead()
+      },
+    
+   
+      recordEvent(button, type, pot) {
+        if (!this.recording) return;
+    
+        const now = Date.now();
+        const timeSinceLast = this.lastEventTime ? now - this.lastEventTime : 0;
+        this.lastEventTime = now;
+    
+        const event = {
+            button,       
+            type,         
+            pot,          // Velocity (from pot)
+           
+            timestamp: now,
+            interval: timeSinceLast, 
+        };
+    
+        this.sequence.push(event);
+       
+        console.log(event);
     },
+    lastPressure:0,
+    
+    async startSerialRead() {
+        if (!this.serialPort || this.reader) return; // Prevent multiple readers
+    
+        this.reader = this.serialPort.readable.getReader();
+        console.log("Serial reading started...");
+    
+        while (this.recording) {  // Read only when recording is active
+            try {
+                const { value, done } = await this.reader.read();
+                if (done) break;
+    
+                if (value) {
+                    this.lastPressure = parseInt(value.trim()); // Save the latest pressure value
+                    console.log("Updated pressure:", this.lastPressure);
+                }
+            } catch (error) {
+                console.error("Error reading serial data:", error);
+                break;
+            }
+        }
+    
+        // Release the reader when done
+        this.reader.releaseLock();
+        this.reader = null;
+    },
+    
+      stopRecording() {
+        this.recording = false;
+        console.log("Recording stopped.");
+        console.log("Recorded sequence:", this.sequence);
+        return this.sequence;
+      },
+    
+      getSequence() {
+        return this.sequence;
+      },
+    
+
+    userDisplay: "undefined",
+
+    changeUser(){
+        this.userDisplay = this.user.displayName
+        console.log(this.userDisplay)
+    },
+
+   
+   // startRecording() {
+     //   this.midiRecording = [];  
+       // this.recordingStartTime = performance.now(); 
+    //    console.log("MIDI recording started.");
+    //},
 
   
     stopRecording() {
@@ -316,6 +403,14 @@ const model = {
         }
     },
 
+    toggleMenu(){
+        if (this.side == true){
+            this.side = false
+        }else{
+            this.side = true
+        }
+    },
+
     readSerialData: async function () {
         while (this.serialPort.readable) {
             try {
@@ -333,6 +428,59 @@ const model = {
             }
         }
     },
+
+    replaying: false, // Track replay state
+
+    async playbackSequence() {
+        if (!this.sequence.length) {
+            console.log("No recorded sequence to play.");
+            return;
+        }
+    
+        if (this.replaying) {
+            console.log("Already replaying...");
+            return;
+        }
+    
+        console.log("Starting playback...");
+        this.replaying = true;
+    
+        for (let i = 0; i < this.sequence.length; i++) {
+            if (!this.replaying) {
+                console.log("Playback stopped.");
+                return;
+            }
+    
+            const { button, type, pot, interval } = this.sequence[i];
+    
+            await new Promise(resolve => setTimeout(resolve, interval));
+    
+            let note = button === "inflate" ? 60 : 67;
+            let velocity = pot;
+    
+            if (type === "press") {
+                this.buttonDownNote(note, velocity);
+            } else if (type === "release") {
+                this.buttonUpNote(note);
+            }
+    
+            console.log(`Played: ${button} (${type}) with MIDI note ${note} and velocity ${velocity}`);
+        }
+    
+        this.replaying = false;
+        console.log("Playback complete.");
+    },
+    
+    stopReplay() {
+        if (!this.replaying) {
+            console.log("No active replay to stop.");
+            return;
+        }
+        console.log("Stopping replay...");
+        this.replaying = false;
+    }
+    
+    
 };
 
 export {model}

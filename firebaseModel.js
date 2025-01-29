@@ -1,9 +1,16 @@
 import { initializeApp } from "firebase/app";
 import { getDatabase, set, ref, get, onValue, off } from "firebase/database";
 import { firebaseConfig} from "./firebaseConfig";
-import { getAuth, signInWithRedirect, GoogleAuthProvider, onAuthStateChanged, signOut, signInWithCredential} from "firebase/auth";
+import { signInWithPopup, getAuth, signInWithRedirect, GoogleAuthProvider, onAuthStateChanged, signOut, signInWithCredential} from "firebase/auth";
 
 import { model } from "./model";
+
+
+import {getFirestore, doc, setDoc, getDoc} from "firebase/firestore";
+
+
+const app= initializeApp(firebaseConfig);
+export const db= getFirestore(app);
 
 
 import { getStorage } from "firebase/storage";
@@ -11,10 +18,8 @@ import { ref as ref_storage } from "firebase/storage";
 
 
 
-
-const app= initializeApp(firebaseConfig)
 export const auth = getAuth(app);
-const db= getDatabase(app);
+
 
 export const provider = new GoogleAuthProvider();
 
@@ -29,44 +34,6 @@ export const storage = getStorage();
 const group = "group1"
 export const imageRef = ref_storage(storage, "files/image");
 
-
-
-
-
-
-export function modelToPersistence(model){
-    return {
-        zones: model.zones
-    }
-}
-
-export function LibraryToPersistence(model){
- 
-    return {
-        library: model.testPersist
-    }
-}
-
-
-
- export function persistenceToModel(firebaseObj, model){
-    
-    if (firebaseObj != undefined){
-        model.zones = firebaseObj.zones 
-    }
-
-}
-
-export function persistedLibraryToModel(firebaseObj, model){
-    
-    if (firebaseObj != undefined){
-         model.testPersist = firebaseObj.library 
-    }
-
-}
-
-
-
 export function saveToFirebase(model){
     if (model.ready == true){
         set(ref(db, PATH+uid), modelToPersistence(model))
@@ -78,8 +45,6 @@ export function saveLibraryToFirebase(model){
         set(ref(db, PATH), LibraryToPersistence(model))
     }
 }
-
-
 
 export function readFromFirebase(model){
    // console.log("reading from firebase")
@@ -102,37 +67,41 @@ export function readFromFirebase(model){
   var uid = null
 
 
-export function connectToFirebase(model, watch){
+export function connectToFirebase(model){
+
 
 
 onAuthStateChanged(auth, loginOrOutACB);
 
 function loginOrOutACB(id){
+    console.log("state change")
     if (id){
         model.user = id
-   console.log(model.user)
+        model.changeUser()
         uid = model.user.uid 
-        }else{  
+    }else{  
         model.user = null
         uid = null
     }
-   
-    readFromFirebase(model);
-    readFLibraryromFirebase(model)
-    
-    function effectACB(){
-        saveToFirebase(model);
-    }
-    
-    function checkACB(){
-        return [ model.zones,]
-    }
-  
+}
+
+}
+
+export function loginFirebase() {
+    signInWithPopup(auth, provider)
+      .then(() => {
+        console.log("Redirecting to sign-in");
+       // model.user = id
+        //console.log(model.user)
+      })
+      .catch((error) => {
+        console.error("Error during sign-in redirect: ", error);
+      });
 
 
 
-}}
 
+  }
 
 
 

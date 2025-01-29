@@ -1,57 +1,108 @@
-
 import { UploadView } from "../views/uploadView";
 import { observer } from "mobx-react-lite";
 
-const Upload = observer(
-function (props){
-    return <UploadView   
-    zones ={props.model.zones} 
-    decrease={decreaseACB}
-    increase={increaseACB}
-    name ={addNameACB}
-    author ={addAuthorACB}
-    tube ={addInputACB}
-    description ={addDescriptionACB} 
-    saveLibrary ={saveLibrary}
-    user ={props.model.user}
-    touch = {props.model.currentTouch} />;
+const Upload = observer(function (props) {
+    const pot = props.model.pot;
 
-  
-    function decreaseACB(){
-        props.model.decreaseZone()
-        props.model.addZones()
+    return (
+        <UploadView
+            zones={props.model.zones}
+            decrease={decreaseACB}
+            increase={increaseACB}
+            name={addNameACB}
+            author={addAuthorACB}
+            tube={addInputACB}
+            description={addDescriptionACB}
+            saveLibrary={saveLibrary}
+            user={props.model.user}
+            recording={props.model.recording}
+            touch={props.model.currentTouch}
+            inflateDown={inflateDownACB}
+            inflateUp={inflateUpACB}
+            deflateDown={deflateDownACB}
+            deflateUp={deflateUpACB}
+            potchange={potchangeACB}
+            start={startACB}
+            stop={stopACB}
+            replay={replayACB}
+            stopReplay={stopACB}
+            sequence={props.model.sequence}
+            replayStatus={props.model.replaying}
+        />
+    );
+
+    function decreaseACB() {
+        props.model.decreaseZone();
+        props.model.addZones();
     }
 
-    function increaseACB(){
-        props.model.increaseZone()
-        props.model.addZones()
+    function stopACB() {
+        props.model.stopReplay();
     }
 
-    function addNameACB(input){
-        props.model.addName(input)
+    function increaseACB() {
+        props.model.increaseZone();
+        props.model.addZones();
     }
 
-    function addAuthorACB(input){
-        props.model.addAuthor(input)
+    function addNameACB(input) {
+        props.model.addName(input);
     }
 
-    function addInputACB(input){
-        props.model.addTube(input)
+    function addAuthorACB(input) {
+        props.model.addAuthor(input);
     }
 
-    function addDescriptionACB(input){
-        props.model.addDescription(input)
-        console.log(props.model.currentTouch)
+    function addInputACB(input) {
+        props.model.addTube(input);
     }
 
-    function saveLibrary(){
-        console.log(props.model.currentTouch)
-      
-        props.model.saveToLibrary()
-        saveLibraryToFirebase(props.model);
+    function addDescriptionACB(input) {
+        props.model.addDescription(input);
+        console.log(props.model.currentTouch);
     }
-    
+
+    function saveLibrary() {
+        console.log("Saving touch data...");
+        props.model.saveToLibrary(); // Call the model's save function
+    }
+
+    function inflateDownACB() {
+        props.model.recordEvent("inflate", "press", pot);
+        props.model.buttonDownNote(60, pot);
+    }
+
+    function inflateUpACB() {
+        props.model.recordEvent("inflate", "release", pot);
+        props.model.buttonUpNote(60, pot);
+    }
+
+    function deflateDownACB() {
+        props.model.recordEvent("deflate", "press", pot);
+        props.model.buttonDownNote(67, pot);
+    }
+
+    function deflateUpACB() {
+        props.model.recordEvent("deflate", "release", pot);
+        props.model.buttonUpNote(67, pot);
+    }
+
+    function potchangeACB(x) {
+        props.model.changePot(x);
+    }
+
+    function startACB() {
+        props.model.startRecording();
+    }
+
+    function replayACB() {
+        props.model.playbackSequence();
+    }
+
+    function stopACB() {
+        props.model.stopRecording();
+        console.log(props.model.sequence);
+    }
 });
 
-export { Upload }
-
+export { Upload };

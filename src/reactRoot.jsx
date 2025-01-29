@@ -1,52 +1,37 @@
-import {Sidebar} from "./solved-sidebarPresenter.jsx";
-import {Search} from "./solved-searchPresenter.jsx";
-import {Summary} from "./solved-summaryPresenter.jsx";
-import {Details} from "./solved-detailsPresenter.jsx";
 
-import {observer} from "mobx-react-lite";
+import { SideMenu } from "./presenters/sideMenuPresenter.jsx";
+import { Visualization } from "./presenters/touchVisualizationPresenter.jsx";
+import { Upload } from "./presenters/uploadPresenter.jsx";
+import { Library } from "./presenters/libraryPresenter.jsx";
+import { ScatterChart } from "./presenters/chartPresenter.jsx";
+import { Playground } from "./presenters/playgroundPresenter.jsx";
+import { Nav } from "./presenters/navPresenter.jsx";
 
-import {  createHashRouter,  RouterProvider } from "react-router-dom";
+import { observer } from "mobx-react-lite";
+import { HashRouter, Routes, Route } from "react-router-dom";
 
-function makeRouter(model){
-    return createHashRouter(
-[
-    {
-        path: "/",
-        element: <Search model={model} />,
-    },
-    {
-        path: "/search",
-        element: <Search model={model} />,
-    },
-    {
-        path: "/details", 
-        element: <Details model={model} />
-    },
-    {
-        path: "/summary" ,
-        element: <Summary model={model} />
-    },
-]);
+function makeRouter(model) {
+  return (
+    <HashRouter>
+      <Nav model={model} />
+      {model.side && <SideMenu model={model} />}
+      <Routes>
+        <Route path="/" element={<Library model={model} />} />
+        <Route path="/upload" element={<Upload model={model} />} />
+        <Route path="/visualization" element={<Visualization model={model} />} />
+        <Route path="/chart" element={<ScatterChart model={model} />} />
+        <Route path="/playground" element={<Playground model={model} />} />
+      </Routes>
+    </HashRouter>
+  );
 }
-	
 
-//import { useLocation, useNavigate } from "react-router-dom";
-// const navigate= useNavigate()
+const ReactRoot = observer(function ReactRootRender({ model }) {
+  return (
+   
+       
+        <div >{makeRouter(model)}</div>
+  );
+});
 
-// <BrowserRouter basename="/react/index.html">
-//window.history.pushState("", "", "/react/index.html/details")
-//dispatchEvent(new PopStateEvent('popstate', {}))
-// addEventListener('popstate', e =>  console.log(e));
-
-const ReactRoot = observer(
-    function ReactRootRender(props){
-       return   !props.model.ready && <img src="http://www.csc.kth.se/~cristi/loading.gif"/> ||
-            <div className="flexParent">
-		<div className="sidebar"><Sidebar model={props.model} /></div>
-		<div className="mainContent">    <RouterProvider router={makeRouter(props.model)} />     </div>
-            </div>
-	;
-    }
-);
-
-export {ReactRoot}
+export { ReactRoot };
