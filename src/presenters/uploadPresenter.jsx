@@ -2,6 +2,7 @@ import { UploadView } from "../views/uploadView";
 import { observer } from "mobx-react-lite";
 
 const Upload = observer(function (props) {
+    if (props.model.user != null){
     const pot = props.model.pot;
 
     return (
@@ -32,6 +33,9 @@ const Upload = observer(function (props) {
             ChangeTouchName = {changeNameACB}
         />
     );
+}else{
+     window.location.hash="#/"
+}
 
     function decreaseACB() {
         props.model.decreaseZone();

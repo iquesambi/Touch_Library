@@ -10,7 +10,7 @@ export function NavView(props) {
 
             {/* Clickable text for the middle button */}
             <button className="nav-center" onClick={clickACB}>
-                Touch Library
+               <h2> Touch Library</h2>
             </button>
 
             {/* User profile on the right */}
