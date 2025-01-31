@@ -70,7 +70,7 @@ export function LibraryView(props) {
                         <div
                             className={`card ${isAuthor ? "author-card" : ""}`}
                             key={item.id}
-                            onClick={() => navigate("/visualization")}
+                            
                         >
                             <div className="card-image"></div>
                             <div className="card-content">

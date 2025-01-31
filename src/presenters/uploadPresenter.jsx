@@ -2,8 +2,12 @@ import { UploadView } from "../views/uploadView";
 import { observer } from "mobx-react-lite";
 
 const Upload = observer(function (props) {
-    if (props.model.user != null){
-    const pot = props.model.pot;
+    if (props.model.user == null) {
+        window.location.hash = "#/";
+        return null; // Prevent rendering if no user is logged in
+    }
+
+    const pot = props.model.pot; // Move `pot` here
 
     return (
         <UploadView
@@ -22,6 +26,8 @@ const Upload = observer(function (props) {
             inflateUp={inflateUpACB}
             deflateDown={deflateDownACB}
             deflateUp={deflateUpACB}
+            fulldeflateDown={fulldeflateDownACB}
+            fulldeflateUp={fulldeflateUpACB}
             potchange={potchangeACB}
             start={startACB}
             stop={stopACB}
@@ -30,21 +36,18 @@ const Upload = observer(function (props) {
             sequence={props.model.sequence}
             replayStatus={props.model.replaying}
             userName={props.model.user?.displayName}
-            ChangeTouchName = {changeNameACB}
+            ChangeTouchName={changeNameACB}
         />
     );
-}else{
-     window.location.hash="#/"
-}
 
     function decreaseACB() {
         props.model.decreaseZone();
         props.model.addZones();
     }
 
-    function changeNameACB(name){
-        props.model.changeName(name)
-        console.log(props.model.touchName)
+    function changeNameACB(name) {
+        props.model.changeName(name);
+        console.log(props.model.touchName);
     }
 
     function stopACB() {
@@ -75,7 +78,7 @@ const Upload = observer(function (props) {
 
     function saveLibrary() {
         console.log("Saving touch data...");
-        props.model.saveToLibrary(); // Call the model's save function
+        props.model.saveToLibrary();
     }
 
     function inflateDownACB() {
@@ -96,6 +99,16 @@ const Upload = observer(function (props) {
     function deflateUpACB() {
         props.model.recordEvent("deflate", "release", pot);
         props.model.buttonUpNote(67, pot);
+    }
+
+    function fulldeflateDownACB() {
+        props.model.stopRecording()
+        props.model.buttonDownNote(71, pot);
+    }
+
+    function fulldeflateUpACB() {
+       // props.model.recordEvent("deflate", "release", pot);
+        props.model.buttonUpNote(71, pot);
     }
 
     function potchangeACB(x) {

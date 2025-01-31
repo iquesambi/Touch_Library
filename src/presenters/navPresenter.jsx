@@ -10,23 +10,15 @@ const Nav = observer(function (props) {
             toogle={toogleACB}
             userImage={props.model.user?.photoURL}
             userName={props.model.user?.displayName}
-            onUserClick={userClickACB}
             onLoginClick={loginACB}
         />
     );
 
     function toogleACB() {
-        props.model.toggleMenu();
-        console.log("Menu toggled");
-    }
-
-    function userClickACB() {
-        console.log("User image clicked");
-        // Add additional logic here if needed
+        props.model.toggleMenu();    
     }
 
     function loginACB() {
-        console.log("Login button clicked");
         signInWithPopup(auth, provider);
     }
 });

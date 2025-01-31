@@ -5,7 +5,7 @@ const Playground = observer(
 function (props){
   var pot = props.model.pot
     return <PlaygroundView inflateDown={inflateDownACB} inflateUp={inflateUpACB} deflateDown={deflateDownACB} 
-    deflateUp={deflateUpACB} potchange={potchangeACB} start={startACB} stop={stopACB} replay={replayACB}/>;
+    deflateUp={deflateUpACB}  fulldeflateDown={fulldeflateDownACB}  fulldeflateUp={fulldeflateUpACB} potchange={potchangeACB} start={startACB} stop={stopACB} replay={replayACB}/>;
 
     function inflateDownACB(){
         props.model.recordEvent("inflate", "press",pot);
@@ -23,6 +23,15 @@ function (props){
     function deflateUpACB(){
         props.model.recordEvent("deflate", "release",pot);
         props.model.buttonUpNote(67,pot)
+    }
+
+    function fulldeflateDownACB(){
+     
+        props.model.buttonDownNote(71,pot)
+    }
+    function fulldeflateUpACB(){
+      
+        props.model.buttonUpNote(71,pot)
     }
 
     function potchangeACB(x){

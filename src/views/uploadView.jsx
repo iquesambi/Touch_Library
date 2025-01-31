@@ -2,6 +2,7 @@ import { toJS } from "mobx"; // Import MobX's toJS function
 import { db } from "../../firebaseModel"; // Ensure to import Firestore db
 import { useState } from "react";
 import { doc, setDoc } from "firebase/firestore"; // Firestore functions
+import { useEffect } from "react";
 
 export function UploadView(props) {
     const [name, setName] = useState(''); // Touch name state
@@ -9,6 +10,42 @@ export function UploadView(props) {
     const [recording, setRecording] = useState(false); // Track recording state
     const [replaying, setReplaying] = useState(false); // Track replaying state
     const [touches, setTouches] = useState([]); // Track touches with React state
+
+   useEffect(() => {
+      function handleKeyDown(event) {
+        if (event.key === "a") {
+          console.log("Key 'i' pressed: Inflate start");
+          inflateStartACB();
+        } else if (event.key === "s") {
+          console.log("Key 's' pressed: Deflate start");
+          deflateStartACB();
+        }else if (event.key === "d") {
+          console.log("Key 'd' pressed: full Deflate start");
+          fulldeflateStartACB();
+        }
+      }
+  
+      function handleKeyUp(event) {
+        if (event.key === "a") {
+          console.log("Key 'i' released: Inflate stop");
+          inflateStopACB();
+        } else if (event.key === "s") {
+          console.log("Key 's' released: Deflate stop");
+          deflateStopACB();
+        }else if (event.key === "d") {
+          console.log("Key 'd' released: Deflate stop");
+          fulldeflateStopACB();
+        }
+      }
+  
+      document.addEventListener("keydown", handleKeyDown);
+      document.addEventListener("keyup", handleKeyUp);
+  
+      return () => {
+        document.removeEventListener("keydown", handleKeyDown);
+        document.removeEventListener("keyup", handleKeyUp);
+      };
+    }, []);
 
     function toggleRecording() {
         if (recording) {
@@ -118,7 +155,6 @@ export function UploadView(props) {
                     {replaying ? "Stop" : "Replay"}
                 </button>
 
-                <div className="chart"></div> {/* Chart rendering will happen here */}
                 <div className="playground-container">
                     <div className="button-row">
                         <button
@@ -137,7 +173,8 @@ export function UploadView(props) {
                         </button>
                     </div>
                     <div className="single-button">
-                        <button className="playground-button">Fully deflate</button>
+                        <button className="playground-button" onMouseDown={fulldeflateStartACB}
+                            onMouseUp={fulldeflateStopACB}>Fully deflate</button>
                     </div>
                     <div className="slider-container">
                         <input
@@ -187,6 +224,16 @@ export function UploadView(props) {
 
     function deflateStopACB() {
         console.log("Deflate stopped");
+        props.deflateUp();
+    }
+
+    function fulldeflateStartACB() {
+        console.log("full Deflate started");
+        props.deflateDown();
+    }
+
+    function fulldeflateStopACB() {
+        console.log("full Deflate stopped");
         props.deflateUp();
     }
 

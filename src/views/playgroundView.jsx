@@ -4,12 +4,15 @@ import { useEffect } from "react";
 export function PlaygroundView(props) {
  useEffect(() => {
     function handleKeyDown(event) {
-      if (event.key === "i") {
+      if (event.key === "a") {
         console.log("Key 'i' pressed: Inflate start");
         inflateStartACB();
       } else if (event.key === "s") {
         console.log("Key 's' pressed: Deflate start");
         deflateStartACB();
+      }else if (event.key === "d") {
+        console.log("Key 'd' pressed: full Deflate start");
+        fulldeflateStartACB();
       }
     }
 
@@ -20,6 +23,9 @@ export function PlaygroundView(props) {
       } else if (event.key === "s") {
         console.log("Key 's' released: Deflate stop");
         deflateStopACB();
+      }else if (event.key === "d") {
+        console.log("Key 'd' released: Deflate stop");
+        fulldeflateStopACB();
       }
     }
 
@@ -51,7 +57,8 @@ export function PlaygroundView(props) {
         </button>
       </div>
       <div className="single-button">
-        <button className="playground-button">Fully deflate</button>
+        <button className="playground-button"  onMouseDown={fulldeflateStartACB}
+          onMouseUp={fulldeflateStopACB}>Fully deflate</button>
       </div>
       <div className="slider-container">
         <input
@@ -63,25 +70,13 @@ export function PlaygroundView(props) {
         />
       </div>
       <div className="record-controls">
-  <button onClick={startACB}>Start Recording</button>
-  <button onClick={stopACB}>Stop Recording</button>
-  <button onClick={replayACB}>replay</button>
+
 </div>
     </div>
 
   );
 
-  function startACB(){
-   props.start()
-  }
-
-  function replayACB(){
-    props.replay()
-   }
  
-  function stopACB(){
-    props.stop()
-   }
  
   function inflateStartACB() {
     console.log("Inflate started");
@@ -101,6 +96,16 @@ export function PlaygroundView(props) {
   function deflateStopACB() {
     console.log("Deflate stopped");
     props.deflateUp();
+  }
+
+  function fulldeflateStartACB() {
+    console.log("Deflate started");
+    props.fulldeflateDown();
+  }
+
+  function fulldeflateStopACB() {
+    console.log("Deflate stopped");
+    props.fulldeflateUp();
   }
 
   function sliderChangeACB(evt) {

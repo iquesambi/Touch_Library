@@ -7,7 +7,6 @@ function (props){
     userName={props.model.user?.displayName}/>;
 
     function sequenceSaveACB(x){
-        console.log("oi")
      props.model.savesequence(x)
        props.model.playbackSequence()
     }
