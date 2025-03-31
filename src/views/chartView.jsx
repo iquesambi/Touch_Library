@@ -6,6 +6,10 @@ export function ScatterChartView() {
   const chartRef = useRef(null);
   const [scatterData, setScatterData] = useState([{ x: 0, y: 0 }]);
 
+  const roundToTwoDecimals = (num) => {
+    return Math.round((num + Number.EPSILON) * 100) / 100;
+  };
+
   useEffect(() => {
     const ctx = chartRef.current?.getContext("2d");
 
@@ -16,7 +20,7 @@ export function ScatterChartView() {
             label: "Scatter Dataset",
             data: scatterData,
             backgroundColor: "rgb(255, 99, 132)",
-        
+           
           },
         ],
       };
@@ -43,8 +47,8 @@ export function ScatterChartView() {
             );
 
             if (distance <= radius) {
-              const xValue = chart.scales.x.getValueForPixel(xPixel);
-              const yValue = chart.scales.y.getValueForPixel(yPixel);
+              const xValue = roundToTwoDecimals(chart.scales.x.getValueForPixel(xPixel));
+              const yValue = roundToTwoDecimals(chart.scales.y.getValueForPixel(yPixel));
 
               if (xValue !== undefined && yValue !== undefined) {
                 console.log("Clicked Point:", { x: xValue, y: yValue });

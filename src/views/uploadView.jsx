@@ -1,115 +1,105 @@
-import { toJS } from "mobx"; // Import MobX's toJS function
-import { db } from "../../firebaseModel"; // Ensure to import Firestore db
-import { useState } from "react";
-import { doc, setDoc } from "firebase/firestore"; // Firestore functions
-import { useEffect } from "react";
+// uploadView.jsx
+import React, { useEffect, useRef, useState } from "react";
+import { toJS } from "mobx";
+import { db } from "../../firebaseModel";
+import { doc, setDoc } from "firebase/firestore";
+import { Chart } from "chart.js/auto";
+import "chartjs-plugin-dragdata"; // Import the dragdata plugin
+import "./style.css";
 
 export function UploadView(props) {
-    const [name, setName] = useState(''); // Touch name state
-    const [description, setDescription] = useState(''); // Description state
-    const [recording, setRecording] = useState(false); // Track recording state
-    const [replaying, setReplaying] = useState(false); // Track replaying state
-    const [touches, setTouches] = useState([]); // Track touches with React state
+    const lineChartRef = useRef(null);
+    const [name, setName] = useState('');
+    const [description, setDescription] = useState('');
+    const [recording, setRecording] = useState(false);
+    const [replaying, setReplaying] = useState(false);
+    const [touches, setTouches] = useState([]);
 
-   useEffect(() => {
-      function handleKeyDown(event) {
-        if (event.key === "a") {
-          console.log("Key 'i' pressed: Inflate start");
-          inflateStartACB();
-        } else if (event.key === "s") {
-          console.log("Key 's' pressed: Deflate start");
-          deflateStartACB();
-        }else if (event.key === "d") {
-          console.log("Key 'd' pressed: full Deflate start");
-          fulldeflateStartACB();
+    useEffect(() => {
+        function handleKeyDown(event) {
+            if (event.key === "a") {
+                console.log("Key 'i' pressed: Inflate start");
+                inflateStartACB();
+            } else if (event.key === "s") {
+                console.log("Key 's' pressed: Deflate start");
+                deflateStartACB();
+            } else if (event.key === "d") {
+                console.log("Key 'd' pressed: full Deflate start");
+                fulldeflateStartACB();
+            }
         }
-      }
-  
-      function handleKeyUp(event) {
-        if (event.key === "a") {
-          console.log("Key 'i' released: Inflate stop");
-          inflateStopACB();
-        } else if (event.key === "s") {
-          console.log("Key 's' released: Deflate stop");
-          deflateStopACB();
-        }else if (event.key === "d") {
-          console.log("Key 'd' released: Deflate stop");
-          fulldeflateStopACB();
+
+        function handleKeyUp(event) {
+            if (event.key === "a") {
+                console.log("Key 'i' released: Inflate stop");
+                inflateStopACB();
+            } else if (event.key === "s") {
+                console.log("Key 's' released: Deflate stop");
+                deflateStopACB();
+            } else if (event.key === "d") {
+                console.log("Key 'd' released: Deflate stop");
+                fulldeflateStopACB();
+            }
         }
-      }
-  
-      document.addEventListener("keydown", handleKeyDown);
-      document.addEventListener("keyup", handleKeyUp);
-  
-      return () => {
-        document.removeEventListener("keydown", handleKeyDown);
-        document.removeEventListener("keyup", handleKeyUp);
-      };
+
+        document.addEventListener("keydown", handleKeyDown);
+        document.addEventListener("keyup", handleKeyUp);
+
+        return () => {
+            document.removeEventListener("keydown", handleKeyDown);
+            document.removeEventListener("keyup", handleKeyUp);
+        };
     }, []);
 
     function toggleRecording() {
         if (recording) {
-            props.stop(); // Stop recording
-            console.log("Sequence before toJS:", props.sequence);
-
-            // Use a timeout to allow MobX state to update
+            props.stop();
             setTimeout(() => {
-                const updatedTouches = toJS(props.sequence); // Convert MobX sequence to plain object
-                console.log("Converted touches:", updatedTouches);
-
-                // Update the React state to trigger a re-render
+                const updatedTouches = toJS(props.sequence);
                 setTouches(updatedTouches);
             }, 0);
         } else {
-            props.start(); // Start recording
+            props.start();
         }
-        setRecording(!recording); // Update recording state
+        setRecording(!recording);
     }
 
     function toggleReplay() {
         if (!replaying) {
-            props.replay(); // Start replay
+            props.replay();
             setReplaying(true);
         } else {
-            props.stopReplay(); // Stop replay
+            props.stopReplay();
             setReplaying(false);
         }
     }
 
-    // Function to save data to Firestore
     function saveACB() {
         if (!name || !description) {
             alert("Please fill in the name and description.");
             return;
         }
-    
-        // Convert MobX sequence to plain object inside the save function
-        const touches = toJS(props.sequence); // Convert MobX sequence to plain object
-        
-        // Log each item in the touches array to check for undefined values
+
+        const touches = toJS(props.sequence);
+
         touches.forEach((touch, index) => {
             console.log(`Touch at index ${index}:`, touch);
         });
-    
-        // Correct Firestore collection reference for metadata
-        const touchRef = doc(db, "touches", name); // Creates or updates a document with the touch name as its ID
-    
-        // Log the data to be saved to Firestore before saving
+
+        const touchRef = doc(db, "touches", name);
+
         console.log("Touch data to be saved:", touches);
-    
-        // Prepare the touch metadata
+
         const touchData = {
             name: name,
             description: description,
-            userName: props.userName, // Add userName from props as the author
-            createdAt: new Date(), // Timestamp for when it was created
+            userName: props.userName,
+            createdAt: new Date(),
             sequence: touches
         };
-    
-        // Log the final touch data
+
         console.log("Final touch data: ", touchData);
-    
-        // Save the metadata to Firestore
+
         setDoc(touchRef, touchData)
             .then(() => {
                 console.log("Touch metadata saved successfully");
@@ -121,17 +111,66 @@ export function UploadView(props) {
                 console.error("Error saving touch data:", error);
             });
 
-        // Call ChangeTouchName to update the name in the model
         if (props.ChangeTouchName) {
-            props.ChangeTouchName(name); // Update the touch name in the model
+            props.ChangeTouchName(name);
         }
     }
 
-    // Function to clear the form after save
     function clearForm() {
         setName('');
         setDescription('');
     }
+
+    useEffect(() => {
+        const lineCtx = lineChartRef.current?.getContext("2d");
+
+        if (lineCtx) {
+            const lineData = {
+                labels: [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50],
+                datasets: [
+                    {
+                        label: "Pressure over Time",
+                        data: [12, 19, 3, 5, 2, 2, 12, 19, 3, 10, 10],
+                        borderColor: "rgba(0, 0, 0, 1)",
+                        backgroundColor: "rgba(241, 245, 249, 1)",
+                        fill: true,
+                        borderWidth: 3,
+                        dragData: true, // Enable dragData for this dataset
+                    },
+                ],
+            };
+
+            const lineConfig = {
+                type: "line",
+                data: lineData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        dragData: {
+                            round: false,
+                            showTooltip: true,
+                            dragX: true,
+                        },
+                    },
+                    scales: {
+                        x: { display: false },
+                        y: { display: false },
+                    },
+                    elements: {
+                        line: { tension: 0.1 },
+                    },
+                },
+            };
+
+            const lineChart = new Chart(lineCtx, lineConfig);
+
+            return () => {
+                lineChart.destroy();
+            };
+        }
+    }, []);
 
     return (
         <div className="main">
@@ -140,11 +179,11 @@ export function UploadView(props) {
                     type="text"
                     placeholder="Touch name"
                     value={name}
-                    onChange={(e) => setName(e.target.value)} // Update the name state
+                    onChange={(e) => setName(e.target.value)}
                 />
                 <button
                     onClick={saveACB}
-                    disabled={!name || !description || touches.length === 0} // Disable if name, description, or touches are missing
+                    disabled={!name || !description || touches.length === 0}
                 >
                     Save
                 </button>
@@ -154,6 +193,10 @@ export function UploadView(props) {
                 <button onClick={toggleReplay}>
                     {replaying ? "Stop" : "Replay"}
                 </button>
+
+                <div className="chart">
+                    <canvas ref={lineChartRef}></canvas>
+                </div>
 
                 <div className="playground-container">
                     <div className="button-row">
@@ -191,7 +234,7 @@ export function UploadView(props) {
                     <label>Author</label>
                     <input
                         className="author"
-                        value={props.userName} // Use userName from props
+                        value={props.userName}
                         readOnly
                     />
                     <textarea
@@ -200,7 +243,7 @@ export function UploadView(props) {
                         rows="5"
                         cols="33"
                         value={description}
-                        onChange={(e) => setDescription(e.target.value)} // Update description state
+                        onChange={(e) => setDescription(e.target.value)}
                     ></textarea>
                 </div>
             </div>
@@ -239,9 +282,5 @@ export function UploadView(props) {
 
     function sliderChangeACB(evt) {
         props.potchange(evt.target.value);
-    }
-
-    function authorInputACB(evt) {
-        props.author(evt.target.value);
     }
 }
