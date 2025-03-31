@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Chart } from "chart.js/auto";
 import { useParams } from "react-router-dom";
 import { db } from "../../firebaseModel";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import "./style.css";
 
 export function VisualizationView(props) {
@@ -13,8 +13,14 @@ export function VisualizationView(props) {
   const [selectedImage, setSelectedImage] = useState(null);
   const [isChartVisible, setIsChartVisible] = useState(false);
   const [isGalleryVisible, setIsGalleryVisible] = useState(false);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [isEditingDescription, setIsEditingDescription] = useState(false);
+  const [editedName, setEditedName] = useState("");
+  const [editedDescription, setEditedDescription] = useState("");
   const defaultImage = "../../img.png"; // Default image URL
   const images = new Array(12).fill(defaultImage); // Array of default images
+
+  const currentUser = props.userName; // Assuming userName is passed as a prop
 
   // Fetch Firestore data based on the ID
   useEffect(() => {
@@ -25,6 +31,8 @@ export function VisualizationView(props) {
 
         if (docSnap.exists()) {
           setTouchData(docSnap.data());
+          setEditedName(docSnap.data().name); // Set the initial name value
+          setEditedDescription(docSnap.data().description); // Set the initial description value
         } else {
           console.error("No such document!");
         }
@@ -93,7 +101,6 @@ export function VisualizationView(props) {
             label: 'Scatter Dataset',
             data: [
               { x: touchData.data[0].x, y: touchData.data[0].y },
-              
             ],
             backgroundColor: 'rgb(255, 99, 132)',
           },
@@ -188,6 +195,34 @@ export function VisualizationView(props) {
     }
   }, [isChartVisible]);
 
+  // Handle name editing
+  const handleNameEdit = () => {
+    const updateData = async () => {
+      try {
+        const docRef = doc(db, "touches", id);
+        await updateDoc(docRef, { name: editedName });
+      } catch (error) {
+        console.error("Error updating document: ", error);
+      }
+    };
+    updateData();
+    setIsEditingName(!isEditingName);
+  };
+
+  // Handle description editing
+  const handleDescriptionEdit = () => {
+    const updateData = async () => {
+      try {
+        const docRef = doc(db, "touches", id);
+        await updateDoc(docRef, { description: editedDescription });
+      } catch (error) {
+        console.error("Error updating document: ", error);
+      }
+    };
+    updateData();
+    setIsEditingDescription(!isEditingDescription);
+  };
+
   function handleImageClick(image) {
     setSelectedImage(image);
   }
@@ -202,9 +237,43 @@ export function VisualizationView(props) {
   return (
     <div className="main">
       <div className="holder">
-        <h2>{touchData ? touchData.name : "Loading..."}</h2>
+      <h2>
+  {isEditingName ? (
+    <input
+      type="text"
+      value={editedName}
+      onChange={(e) => setEditedName(e.target.value)}
+    />
+  ) : (
+    touchData ? touchData.name : "Loading..."
+  )}
+  
+  {touchData && touchData.userName === currentUser && (
+    <button onClick={handleNameEdit}>
+      {isEditingName ? "Save Name" : "Edit Name"}
+    </button>
+  )}
+</h2>
+
         <p><strong>Author:</strong> {touchData ? touchData.userName : "Loading..."}</p>
-        <p>{touchData ? touchData.description : "Loading..."}</p>
+
+        <p>
+  {isEditingDescription ? (
+    <textarea
+      value={editedDescription}
+      onChange={(e) => setEditedDescription(e.target.value)}
+    />
+  ) : (
+    touchData ? touchData.description : "Loading..."
+  )}
+
+  {touchData && touchData.userName === currentUser && (
+    <button onClick={handleDescriptionEdit}>
+      {isEditingDescription ? "Save Description" : "Edit Description"}
+    </button>
+  )}
+</p>
+
 
         <button>Play</button>
 

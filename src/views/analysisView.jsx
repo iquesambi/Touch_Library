@@ -1,17 +1,39 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Chart } from "chart.js/auto";
+import { db } from "../../firebaseModel";
+import { collection, getDocs } from "firebase/firestore";
 import "./style.css"; // Ensure you have the right styling for centering the chart
 
-export function AnalysisView(props) {
-    const data = [
-        { x: -10, y: 0, title: 'Dragon Touch', description: 'dragon touch', image: '../../wave.png' },
-        { x: 0, y: 10, title: 'Point 2', description: 'This is point 2 description', image: '../../wave.png' },
-        { x: 10, y: 5, title: 'Point 3', description: 'This is point 3 description', image: '../../wave.png' },
-        { x: 0.5, y: 5.5, title: 'Point 4', description: 'This is point 4 description', image: '../../wave.png' },
-      ]
+export function AnalysisView() {
+  const [touchPoints, setTouchPoints] = useState([]);
   const chartRef = useRef(null);
   const [tooltipVisible, setTooltipVisible] = useState(false);
   const [tooltipContent, setTooltipContent] = useState(null);
+
+  // Fetch data from Firestore
+  const fetchLibraryData = useCallback(async () => {
+    try {
+      const querySnapshot = await getDocs(collection(db, "touches"));
+      const fetchedLibrary = querySnapshot.docs.map((doc) => {
+        const touchData = doc.data();
+        return {
+          id: doc.id,
+          name: touchData.name || "Unnamed Touch",
+          description: touchData.description || "No Description",
+          x: touchData.data?.[0]?.x ?? 0, // Ensure safe access
+          y: touchData.data?.[0]?.y ?? 0
+        };
+      });
+      setTouchPoints(fetchedLibrary);
+      console.log("Fetched Touch Data:", fetchedLibrary);
+    } catch (error) {
+      console.error("Error fetching data from Firestore: ", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchLibraryData(); // Fetch Firestore data on component mount
+  }, [fetchLibraryData]);
 
   // Initialize the chart
   useEffect(() => {
@@ -22,7 +44,7 @@ export function AnalysisView(props) {
         datasets: [
           {
             label: 'Scatter Dataset',
-            data: data,
+            data: touchPoints, // Use Firestore data
             backgroundColor: 'rgb(255, 99, 132)',
           },
         ],
@@ -68,8 +90,7 @@ export function AnalysisView(props) {
                 // Set content of the tooltip
                 const data = tooltipModel.dataPoints[0].raw;
                 tooltip.innerHTML = `
-                  <div class="tooltip-title">${data.title} (${data.x}, ${data.y})</div>
-                  <div class="tooltip-image"><img src="${data.image}" alt="Image" height="100px" /></div>
+                  <div class="tooltip-title">${data.name} (${data.x}, ${data.y})</div>
                   <div class="tooltip-description">${data.description}</div>
                 `;
 
@@ -100,7 +121,6 @@ export function AnalysisView(props) {
               border: { width: 3, color: "black" },
             },
           }
-          
         },
         plugins: [
           {
@@ -156,7 +176,7 @@ export function AnalysisView(props) {
         circularChart.destroy();
       };
     }
-  }, []);
+  }, [touchPoints]); // Re-render chart when touchPoints change
 
   const handleClickOutsideTooltip = (e) => {
     if (!document.getElementById('chartjs-tooltip')?.contains(e.target)) {
