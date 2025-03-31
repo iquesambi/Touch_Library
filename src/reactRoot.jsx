@@ -1,4 +1,3 @@
-
 import { SideMenu } from "./presenters/sideMenuPresenter.jsx";
 import { Visualization } from "./presenters/touchVisualizationPresenter.jsx";
 import { Upload } from "./presenters/uploadPresenter.jsx";
@@ -6,6 +5,7 @@ import { Library } from "./presenters/libraryPresenter.jsx";
 import { ScatterChart } from "./presenters/chartPresenter.jsx";
 import { Playground } from "./presenters/playgroundPresenter.jsx";
 import { Nav } from "./presenters/navPresenter.jsx";
+import { Analysis } from "./presenters/analysisPresenter.jsx";
 
 import { observer } from "mobx-react-lite";
 import { HashRouter, Routes, Route } from "react-router-dom";
@@ -20,7 +20,9 @@ function makeRouter(model) {
         <Route path="/upload" element={<Upload model={model} />} />
         <Route path="/visualization" element={<Visualization model={model} />} />
         <Route path="/chart" element={<ScatterChart model={model} />} />
+        <Route path="/analysis" element={<Analysis model={model} />} />
         <Route path="/playground" element={<Playground model={model} />} />
+        <Route path="/visualization/:id" element={<Visualization model={model} />} />
       </Routes>
     </HashRouter>
   );
@@ -28,9 +30,7 @@ function makeRouter(model) {
 
 const ReactRoot = observer(function ReactRootRender({ model }) {
   return (
-   
-       
-        <div >{makeRouter(model)}</div>
+    <div>{makeRouter(model)}</div>
   );
 });
 

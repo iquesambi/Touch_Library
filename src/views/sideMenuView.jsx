@@ -14,6 +14,7 @@ export function SideMenuView(props){
         <li><h4><a href="#/" >Library</a></h4></li>
         <li><h4><a href="#/upload">Upload</a></h4></li>
         <li><h4><a href="#/playground">Playground</a></h4></li>
+        <li><h4><a href="#/analysis">Analysis</a></h4></li>
         </ul>
 
         <button  disabled={props.midiAuth} onClick={connectACB} className="button_side">Authorize Midi Devices</button>

@@ -1,15 +1,40 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Chart } from "chart.js/auto";
+import { useParams } from "react-router-dom";
+import { db } from "../../firebaseModel";
+import { doc, getDoc } from "firebase/firestore";
 import "./style.css";
 
 export function VisualizationView(props) {
   const lineChartRef = useRef(null);
   const scatterChartRef = useRef(null);
+  const { id } = useParams(); // Get ID from URL params
+  const [touchData, setTouchData] = useState(null); // To store Firestore data
   const [selectedImage, setSelectedImage] = useState(null);
   const [isChartVisible, setIsChartVisible] = useState(false);
   const [isGalleryVisible, setIsGalleryVisible] = useState(false);
   const defaultImage = "../../img.png"; // Default image URL
   const images = new Array(12).fill(defaultImage); // Array of default images
+
+  // Fetch Firestore data based on the ID
+  useEffect(() => {
+    const fetchTouchData = async () => {
+      try {
+        const docRef = doc(db, "touches", id); // Use URL-safe ID
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          setTouchData(docSnap.data());
+        } else {
+          console.error("No such document!");
+        }
+      } catch (error) {
+        console.error("Error fetching data from Firestore: ", error);
+      }
+    };
+
+    fetchTouchData();
+  }, [id]);
 
   // Initialize line chart
   useEffect(() => {
@@ -67,10 +92,8 @@ export function VisualizationView(props) {
           {
             label: 'Scatter Dataset',
             data: [
-              { x: -10, y: 0 },
-              { x: 0, y: 10 },
-              { x: 10, y: 5 },
-              { x: 0.5, y: 5.5 },
+              { x: touchData.data[0].x, y: touchData.data[0].y },
+              
             ],
             backgroundColor: 'rgb(255, 99, 132)',
           },
@@ -93,6 +116,8 @@ export function VisualizationView(props) {
               position: 'center',
               grid: { display: false },
               ticks: { display: false },
+              min: -15,  // Minimum value for the x-axis
+              max: 15,   // Maximum value for the x-axis
               border: { width: 3, color: "black" },
             },
             y: {
@@ -101,9 +126,11 @@ export function VisualizationView(props) {
               position: 'center',
               grid: { display: false },
               ticks: { display: false },
+              min: -15,   // Minimum value for the y-axis
+              max: 15,   // Maximum value for the y-axis
               border: { width: 3, color: "black" },
             },
-          },
+          }
         },
         plugins: [
           {
@@ -175,15 +202,9 @@ export function VisualizationView(props) {
   return (
     <div className="main">
       <div className="holder">
-        <h2>Touch Name</h2>
-        <p>Zones: 1</p>
-        <p>Author: name</p>
-        {props.zones}
-        <p>
-          Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-          Pellentesque interdum rutrum sodales. Nullam mattis fermentum
-          libero, non volutpat.
-        </p>
+        <h2>{touchData ? touchData.name : "Loading..."}</h2>
+        <p><strong>Author:</strong> {touchData ? touchData.userName : "Loading..."}</p>
+        <p>{touchData ? touchData.description : "Loading..."}</p>
 
         <button>Play</button>
 
@@ -192,9 +213,9 @@ export function VisualizationView(props) {
         </div>
 
         <div className="dropdown">
-        russell circumplex model
+          russell circumplex model
           <button onClick={() => setIsChartVisible(!isChartVisible)}>
-           Open
+            Open
           </button>
           {isChartVisible && (
             <div>
@@ -204,11 +225,11 @@ export function VisualizationView(props) {
         </div>
 
         <div className="dropdown">
-        Media Gallery
-<button onClick={() => setIsGalleryVisible(!isGalleryVisible)}>
-          Open
+          Media Gallery
+          <button onClick={() => setIsGalleryVisible(!isGalleryVisible)}>
+            Open
           </button>
-       
+
           {isGalleryVisible && (
             <div className="gallery-grid">
               {images.map((image, index) => (

@@ -13,7 +13,7 @@ export function LibraryView(props) {
             try {
                 const querySnapshot = await getDocs(collection(db, "touches"));
                 const fetchedLibrary = querySnapshot.docs.map((doc) => ({
-                    id: doc.id,
+                    id: doc.id, // Firestore document name (already formatted)
                     ...doc.data(),
                 }));
                 setLibrary(fetchedLibrary);
@@ -44,12 +44,10 @@ export function LibraryView(props) {
     };
 
     const handleDelete = async (e, itemId) => {
-        e.stopPropagation(); // Prevent triggering the card click event
+        e.stopPropagation();
 
-        // Ask for confirmation before deleting
         const confirmed = window.confirm("Are you sure you want to delete this file?");
-
-        if (!confirmed) return; // Stop if the user cancels
+        if (!confirmed) return;
 
         try {
             await deleteDoc(doc(db, "touches", itemId));
@@ -60,6 +58,8 @@ export function LibraryView(props) {
         }
     };
 
+    const formatId = (name) => name.toLowerCase().replace(/\s+/g, "-");
+
     return (
         <div className="library-view">
             <div className="cards-container">
@@ -67,11 +67,7 @@ export function LibraryView(props) {
                     const isAuthor = item.userName === props.userName;
 
                     return (
-                        <div
-                            className={`card ${isAuthor ? "author-card" : ""}`}
-                            key={item.id}
-                            
-                        >
+                        <div className={`card ${isAuthor ? "author-card" : ""}`} key={item.id} onClick={() => navigate(`/visualization/${item.id}`)}>
                             <div className="card-image"></div>
                             <div className="card-content">
                                 <h6>{item.name}</h6>
@@ -81,6 +77,7 @@ export function LibraryView(props) {
                             </div>
                             <div className="card-buttons">
                                 <button onClick={(e) => handlePlay(e, item.sequence)}>Play</button>
+                                
                                 {isAuthor && (
                                     <button className="delete-button" onClick={(e) => handleDelete(e, item.id)}>
                                         Delete

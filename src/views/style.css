@@ -507,3 +507,48 @@ h2{
   color: #000;
   font-weight: 600;
 }
+
+
+.chart-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh; /* Full height of the viewport */
+  width: 100%;
+}
+
+.circular-chart {
+  width: 80%;
+  height: 80%;
+  max-width: 600px;
+  max-height: 600px;
+}
+
+
+.tooltip {
+  position: absolute;
+  background-color: white;
+  border: 1px solid #ccc;
+  padding: 10px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  max-width: 500px;
+  pointer-events: auto; /* Ensures the tooltip is clickable */
+  z-index: 9999;
+  cursor: pointer; /* Change the cursor to indicate the tooltip is clickable */
+}
+
+.tooltip-title {
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.tooltip-image {
+
+  height: 100px;
+  margin-bottom: 10px;
+}
+
+.tooltip-description {
+  font-size: 14px;
+  color: #333;
+}
