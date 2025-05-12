@@ -1,4 +1,3 @@
-// uploadView.jsx
 import React, { useEffect, useRef, useState } from "react";
 import { toJS } from "mobx";
 import { db } from "../../firebaseModel";
@@ -104,8 +103,10 @@ export function UploadView(props) {
             .then(() => {
                 console.log("Touch metadata saved successfully");
                 clearForm();
-            }).then(() => {
-                window.location.hash = "#/chart";
+            })
+            .then(() => {
+                // Pass the name as a URL parameter
+                window.location.hash = `#/chart?name=${encodeURIComponent(name)}`;
             })
             .catch((error) => {
                 console.error("Error saving touch data:", error);

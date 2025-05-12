@@ -1,16 +1,27 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Chart } from "chart.js/auto";
+import { db } from "../../firebaseModel"; // Import your Firestore connection
+import { doc, setDoc, getDoc } from "firebase/firestore"; // Import getDoc
 import "./style.css";
 
 export function ScatterChartView() {
   const chartRef = useRef(null);
   const [scatterData, setScatterData] = useState([{ x: 0, y: 0 }]);
+  const [chartName, setChartName] = useState(""); // State to store the chart name
+  const [feltSensation, setFeltSensation] = useState(""); // State for the text input
 
   const roundToTwoDecimals = (num) => {
     return Math.round((num + Number.EPSILON) * 100) / 100;
   };
 
   useEffect(() => {
+    // Get the name from the URL
+    const urlParams = new URLSearchParams(window.location.hash.split("?")[1]);
+    const nameFromURL = urlParams.get("name");
+    if (nameFromURL) {
+      setChartName(nameFromURL);
+    }
+
     const ctx = chartRef.current?.getContext("2d");
 
     if (ctx) {
@@ -20,7 +31,6 @@ export function ScatterChartView() {
             label: "Scatter Dataset",
             data: scatterData,
             backgroundColor: "rgb(255, 99, 132)",
-           
           },
         ],
       };
@@ -30,7 +40,7 @@ export function ScatterChartView() {
         data: chartData,
         options: {
           events: ['click'],
-          onClick: (e) => {
+          onClick: async (e) => { // Make onClick async to use await
             if (!chartRef.current) return;
             const chart = Chart.getChart(chartRef.current);
             if (!chart) return;
@@ -52,7 +62,10 @@ export function ScatterChartView() {
 
               if (xValue !== undefined && yValue !== undefined) {
                 console.log("Clicked Point:", { x: xValue, y: yValue });
-                setScatterData([{ x: xValue, y: yValue }]);
+                const newScatterData = [{ x: xValue, y: yValue }];
+                setScatterData(newScatterData);
+                // Save to Firestore here, passing the name and felt sensation
+                await saveDataToFirestore(nameFromURL, newScatterData, feltSensation);
               }
             } else {
               console.log("Click outside the circle");
@@ -136,9 +149,72 @@ export function ScatterChartView() {
     }
   }, [scatterData]);
 
+  const saveDataToFirestore = async (name, data, sensation) => {
+    try {
+      if (!name) {
+        console.error("Chart name is undefined or empty.  Cannot save to Firestore.");
+        return;
+      }
+      const touchRef = doc(db, "touches", name);
+      const docSnap = await getDoc(touchRef); // Get the current document
+
+      let existingData = {};
+      if (docSnap.exists()) {
+        existingData = docSnap.data(); // Get the data if it exists
+      }
+
+      // Structure the new data as an array of maps, like before
+      const newData = data.map(item => ({ x: item.x, y: item.y }));
+
+      // Merge the new data with the existing data.
+      const updatedData = {
+        ...existingData,
+        data: newData,
+        feltSensation: sensation, // Save the felt sensation
+      };
+
+      await setDoc(touchRef, updatedData);
+      console.log("Data saved to Firestore successfully with name:", name);
+    } catch (error) {
+      console.error("Error saving data to Firestore:", error);
+    }
+  };
+
+  const handleSaveClick = () => {
+    // In a real application, you would perform actual saving logic here.
+    console.log("Saving data...");
+    console.log("Chart Name:", chartName);
+    console.log("Scatter Data:", scatterData);
+    console.log("Felt Sensation:", feltSensation);
+    // Save to Firestore here!
+    saveDataToFirestore(chartName, scatterData, feltSensation);
+    // For this example, we'll just simulate navigation to the home page.
+    window.location.hash = "#/"; // Navigate to the root path (home page)
+  };
+
   return (
     <div className="chart-container">
-      <canvas ref={chartRef} className="circular-chart"></canvas>
+      <div style={{ position: 'relative' }}>
+        <canvas ref={chartRef} className="circular-chart"></canvas>
+       
+      </div>
+      <textarea // Use textarea for larger text input
+        placeholder="Describe your felt sensation"
+        value={feltSensation}
+        onChange={(e) => setFeltSensation(e.target.value)}
+        className="sensation-input"
+        rows={4} // Added rows attribute for size
+        cols={50}
+      />
+
+<button
+          onClick={handleSaveClick}
+          className="save-button"
+       
+        >
+          Save
+        </button>
+
     </div>
   );
 }

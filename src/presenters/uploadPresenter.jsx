@@ -3,7 +3,9 @@ import { observer } from "mobx-react-lite";
 
 const Upload = observer(function (props) {
     if (props.model.user == null) {
+        alert("Please, log in to save");
         window.location.hash = "#/";
+
         return null; // Prevent rendering if no user is logged in
     }
 
