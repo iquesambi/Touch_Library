@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Chart } from "chart.js/auto";
 import { useParams } from "react-router-dom";
-import { db } from "../../firebaseModel";
+import { db, storage } from "../../firebaseModel";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { ref, listAll, getDownloadURL, uploadBytes } from "firebase/storage";
 import "./style.css";
 
 export function VisualizationView(props) {
@@ -17,10 +18,12 @@ export function VisualizationView(props) {
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [editedName, setEditedName] = useState("");
   const [editedDescription, setEditedDescription] = useState("");
+  const [mediaUrls, setMediaUrls] = useState([]); // State to store media URLs
   const defaultImage = "../../img.png"; // Default image URL
   const images = new Array(12).fill(defaultImage); // Array of default images
 
   const currentUser = props.userName; // Assuming userName is passed as a prop
+  const isAuthor = touchData?.userName === currentUser;
 
   // Fetch Firestore data based on the ID
   useEffect(() => {
@@ -43,6 +46,56 @@ export function VisualizationView(props) {
 
     fetchTouchData();
   }, [id]);
+
+  useEffect(() => {
+    const loadMedia = async () => {
+      try {
+        const folderRef = ref(storage, `touchMedia/${id}`);
+        const result = await listAll(folderRef);
+        const urls = await Promise.all(
+          result.items.map((itemRef) => getDownloadURL(itemRef))
+        );
+        setMediaUrls(urls);
+      } catch (error) {
+        console.error("Error loading media: ", error);
+        setMediaUrls([]); // Ensure mediaUrls is initialized even on error
+      }
+    };
+
+    loadMedia();
+  }, [id]);
+
+  const handleFileUpload = async (files) => {
+    if (isAuthor) {
+      for (const file of files) {
+        try {
+          const storageRef = ref(storage, `touchMedia/${id}/${file.name}`);
+          await uploadBytes(storageRef, file);
+          const downloadURL = await getDownloadURL(storageRef);
+          setMediaUrls((prev) => [...prev, downloadURL]);
+        } catch (error) {
+          console.error("Error uploading file: ", error);
+        }
+      }
+    } else {
+      alert("You are not the author of this touch and cannot upload files.");
+    }
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    const files = e.dataTransfer.files;
+    handleFileUpload(files);
+  };
+
+  const handleFileInputChange = (e) => {
+    const files = e.target.files;
+    handleFileUpload(files);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+  };
 
   // Initialize line chart
   useEffect(() => {
@@ -90,11 +143,11 @@ export function VisualizationView(props) {
     }
   }, []);
 
-  // Initialize scatter chart when visible
+  // Initialize scatter chart when visible and touchData is available
   useEffect(() => {
     const scatterCtx = scatterChartRef.current?.getContext("2d");
 
-    if (isChartVisible && scatterCtx) {
+    if (isChartVisible && scatterCtx && touchData?.data?.[0]?.x !== undefined && touchData?.data?.[0]?.y !== undefined) {
       const scatterData = {
         datasets: [
           {
@@ -193,34 +246,42 @@ export function VisualizationView(props) {
         scatterChart.destroy();
       };
     }
-  }, [isChartVisible]);
+  }, [isChartVisible, touchData]);
 
   // Handle name editing
   const handleNameEdit = () => {
-    const updateData = async () => {
-      try {
-        const docRef = doc(db, "touches", id);
-        await updateDoc(docRef, { name: editedName });
-      } catch (error) {
-        console.error("Error updating document: ", error);
-      }
-    };
-    updateData();
-    setIsEditingName(!isEditingName);
+    if (isAuthor) {
+      const updateData = async () => {
+        try {
+          const docRef = doc(db, "touches", id);
+          await updateDoc(docRef, { name: editedName });
+        } catch (error) {
+          console.error("Error updating document: ", error);
+        }
+      };
+      updateData();
+      setIsEditingName(!isEditingName);
+    } else {
+      alert("You are not the author of this touch and cannot edit the name.");
+    }
   };
 
   // Handle description editing
   const handleDescriptionEdit = () => {
-    const updateData = async () => {
-      try {
-        const docRef = doc(db, "touches", id);
-        await updateDoc(docRef, { description: editedDescription });
-      } catch (error) {
-        console.error("Error updating document: ", error);
-      }
-    };
-    updateData();
-    setIsEditingDescription(!isEditingDescription);
+    if (isAuthor) {
+      const updateData = async () => {
+        try {
+          const docRef = doc(db, "touches", id);
+          await updateDoc(docRef, { description: editedDescription });
+        } catch (error) {
+          console.error("Error updating document: ", error);
+        }
+      };
+      updateData();
+      setIsEditingDescription(!isEditingDescription);
+    } else {
+      alert("You are not the author of this touch and cannot edit the description.");
+    }
   };
 
   function handleImageClick(image) {
@@ -237,43 +298,42 @@ export function VisualizationView(props) {
   return (
     <div className="main">
       <div className="holder">
-      <h2>
-  {isEditingName ? (
-    <input
-      type="text"
-      value={editedName}
-      onChange={(e) => setEditedName(e.target.value)}
-    />
-  ) : (
-    touchData ? touchData.name : "Loading..."
-  )}
-  
-  {touchData && touchData.userName === currentUser && (
-    <button onClick={handleNameEdit}>
-      {isEditingName ? "Save Name" : "Edit Name"}
-    </button>
-  )}
-</h2>
+        <h2>
+          {isEditingName ? (
+            <input
+              type="text"
+              value={editedName}
+              onChange={(e) => setEditedName(e.target.value)}
+            />
+          ) : (
+            touchData ? touchData.name : "Loading..."
+          )}
+
+          {touchData && touchData.userName === currentUser && (
+            <button onClick={handleNameEdit}>
+              {isEditingName ? "Save Name" : "Edit Name"}
+            </button>
+          )}
+        </h2>
 
         <p><strong>Author:</strong> {touchData ? touchData.userName : "Loading..."}</p>
 
         <p>
-  {isEditingDescription ? (
-    <textarea
-      value={editedDescription}
-      onChange={(e) => setEditedDescription(e.target.value)}
-    />
-  ) : (
-    touchData ? touchData.description : "Loading..."
-  )}
+          {isEditingDescription ? (
+            <textarea
+              value={editedDescription}
+              onChange={(e) => setEditedDescription(e.target.value)}
+            />
+          ) : (
+            touchData ? touchData.description : "Loading..."
+          )}
 
-  {touchData && touchData.userName === currentUser && (
-    <button onClick={handleDescriptionEdit}>
-      {isEditingDescription ? "Save Description" : "Edit Description"}
-    </button>
-  )}
-</p>
-
+          {touchData && touchData.userName === currentUser && (
+            <button onClick={handleDescriptionEdit}>
+              {isEditingDescription ? "Save Description" : "Edit Description"}
+            </button>
+          )}
+        </p>
 
         <button>Play</button>
 
@@ -300,23 +360,56 @@ export function VisualizationView(props) {
           </button>
 
           {isGalleryVisible && (
-            <div className="gallery-grid">
-              {images.map((image, index) => (
-                <img
-                  key={index}
-                  src={image}
-                  alt={`Thumbnail ${index + 1}`}
-                  className="thumbnail"
-                  onClick={() => handleImageClick(image)}
-                />
-              ))}
-            </div>
+            <>
+              {isAuthor && (
+                <div
+                  className="upload-zone"
+                  onDrop={handleDrop}
+                  onDragOver={handleDragOver}
+                >
+                  Drag and drop files here or
+                  <input
+                    type="file"
+                    multiple
+                    onChange={handleFileInputChange}
+                    style={{ marginLeft: "10px" }}
+                  />
+                </div>
+              )}
+            
+
+              <div className="gallery-grid">
+                {mediaUrls.map((url, index) =>
+                  url.match(/\.(mp4|webm)$/i) ? (
+                    <video
+                      key={index}
+                      src={url}
+                      controls
+                      className="thumbnail"
+                      style={{ maxHeight: "150px" }}
+                    />
+                  ) : (
+                    <img
+                      key={index}
+                      src={url}
+                      alt={`Media ${index}`}
+                      className="thumbnail"
+                      onClick={() => handleImageClick(url)}
+                    />
+                  )
+                )}
+              </div>
+            </>
           )}
         </div>
 
         {selectedImage && (
           <div className="lightbox" onClick={closeImage}>
-            <img src={selectedImage} alt="Enlarged view" className="enlarged-image" />
+            <img
+              src={selectedImage}
+              alt="Enlarged"
+              className="enlarged-image"
+            />
           </div>
         )}
       </div>

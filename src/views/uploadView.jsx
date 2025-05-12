@@ -3,7 +3,7 @@ import { toJS } from "mobx";
 import { db } from "../../firebaseModel";
 import { doc, setDoc } from "firebase/firestore";
 import { Chart } from "chart.js/auto";
-import "chartjs-plugin-dragdata"; // Import the dragdata plugin
+import "chartjs-plugin-dragdata";
 import "./style.css";
 
 export function UploadView(props) {
@@ -13,37 +13,24 @@ export function UploadView(props) {
     const [recording, setRecording] = useState(false);
     const [replaying, setReplaying] = useState(false);
     const [touches, setTouches] = useState([]);
+    const [pressureData, setPressureData] = useState([]);
+    const pressureIntervalRef = useRef(null);
 
     useEffect(() => {
         function handleKeyDown(event) {
-            if (event.key === "a") {
-                console.log("Key 'i' pressed: Inflate start");
-                inflateStartACB();
-            } else if (event.key === "s") {
-                console.log("Key 's' pressed: Deflate start");
-                deflateStartACB();
-            } else if (event.key === "d") {
-                console.log("Key 'd' pressed: full Deflate start");
-                fulldeflateStartACB();
-            }
+            if (event.key === "a") inflateStartACB();
+            else if (event.key === "s") deflateStartACB();
+            else if (event.key === "d") fulldeflateStartACB();
         }
 
         function handleKeyUp(event) {
-            if (event.key === "a") {
-                console.log("Key 'i' released: Inflate stop");
-                inflateStopACB();
-            } else if (event.key === "s") {
-                console.log("Key 's' released: Deflate stop");
-                deflateStopACB();
-            } else if (event.key === "d") {
-                console.log("Key 'd' released: Deflate stop");
-                fulldeflateStopACB();
-            }
+            if (event.key === "a") inflateStopACB();
+            else if (event.key === "s") deflateStopACB();
+            else if (event.key === "d") fulldeflateStopACB();
         }
 
         document.addEventListener("keydown", handleKeyDown);
         document.addEventListener("keyup", handleKeyUp);
-
         return () => {
             document.removeEventListener("keydown", handleKeyDown);
             document.removeEventListener("keyup", handleKeyUp);
@@ -53,13 +40,30 @@ export function UploadView(props) {
     function toggleRecording() {
         if (recording) {
             props.stop();
+            clearInterval(pressureIntervalRef.current);
+            pressureIntervalRef.current = null;
+            props.toggleListen()
+           
+
             setTimeout(() => {
                 const updatedTouches = toJS(props.sequence);
                 setTouches(updatedTouches);
             }, 0);
         } else {
+            setPressureData([]);
             props.start();
+            props.toggleListen()
+
+            pressureIntervalRef.current = setInterval(() => {
+                const intPart = props.model.lastIntPressure || 0;
+                const decPart = props.model.lastDecPressure || 0;
+                const pressure = parseFloat((intPart + decPart / 100.0).toFixed(2));
+                setPressureData(prev => [...prev, pressure]);
+            }, 50);
         }
+
+        
+
         setRecording(!recording);
     }
 
@@ -80,32 +84,23 @@ export function UploadView(props) {
         }
 
         const touches = toJS(props.sequence);
-
-        touches.forEach((touch, index) => {
-            console.log(`Touch at index ${index}:`, touch);
-        });
-
         const touchRef = doc(db, "touches", name);
-
-        console.log("Touch data to be saved:", touches);
 
         const touchData = {
             name: name,
             description: description,
             userName: props.userName,
             createdAt: new Date(),
-            sequence: touches
+            sequence: touches,
+            pressure: props.pressureArray,
         };
 
-        console.log("Final touch data: ", touchData);
+        console.log("Saving data:", touchData);
 
         setDoc(touchRef, touchData)
             .then(() => {
                 console.log("Touch metadata saved successfully");
                 clearForm();
-            })
-            .then(() => {
-                // Pass the name as a URL parameter
                 window.location.hash = `#/chart?name=${encodeURIComponent(name)}`;
             })
             .catch((error) => {
@@ -136,7 +131,7 @@ export function UploadView(props) {
                         backgroundColor: "rgba(241, 245, 249, 1)",
                         fill: true,
                         borderWidth: 3,
-                        dragData: true, // Enable dragData for this dataset
+                        dragData: true,
                     },
                 ],
             };
@@ -199,45 +194,11 @@ export function UploadView(props) {
                     <canvas ref={lineChartRef}></canvas>
                 </div>
 
-                <div className="playground-container">
-                    <div className="button-row">
-                        <button
-                            className="playground-button"
-                            onMouseDown={inflateStartACB}
-                            onMouseUp={inflateStopACB}
-                        >
-                            Inflate
-                        </button>
-                        <button
-                            className="playground-button"
-                            onMouseDown={deflateStartACB}
-                            onMouseUp={deflateStopACB}
-                        >
-                            Deflate
-                        </button>
-                    </div>
-                    <div className="single-button">
-                        <button className="playground-button" onMouseDown={fulldeflateStartACB}
-                            onMouseUp={fulldeflateStopACB}>Fully deflate</button>
-                    </div>
-                    <div className="slider-container">
-                        <input
-                            className="playground-slider"
-                            type="range"
-                            min="0"
-                            max="127"
-                            onChange={sliderChangeACB}
-                        />
-                    </div>
-                </div>
+              
 
                 <div className="bottom_form">
                     <label>Author</label>
-                    <input
-                        className="author"
-                        value={props.userName}
-                        readOnly
-                    />
+                    <input className="author" value={props.userName} readOnly />
                     <textarea
                         maxLength="200"
                         placeholder="Add a short description here..."
@@ -252,32 +213,26 @@ export function UploadView(props) {
     );
 
     function inflateStartACB() {
-        console.log("Inflate started");
         props.inflateDown();
     }
 
     function inflateStopACB() {
-        console.log("Inflate stopped");
         props.inflateUp();
     }
 
     function deflateStartACB() {
-        console.log("Deflate started");
         props.deflateDown();
     }
 
     function deflateStopACB() {
-        console.log("Deflate stopped");
         props.deflateUp();
     }
 
     function fulldeflateStartACB() {
-        console.log("full Deflate started");
         props.deflateDown();
     }
 
     function fulldeflateStopACB() {
-        console.log("full Deflate stopped");
         props.deflateUp();
     }
 

@@ -13,7 +13,7 @@ export function SideMenuView(props){
         <ul>
         <li><h4><a href="#/" >Library</a></h4></li>
         <li><h4><a href="#/upload">Upload</a></h4></li>
-        <li><h4><a href="#/playground">Playground</a></h4></li>
+       
         <li><h4><a href="#/analysis">Analysis</a></h4></li>
         </ul>
 

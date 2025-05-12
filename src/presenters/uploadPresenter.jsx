@@ -39,8 +39,13 @@ const Upload = observer(function (props) {
             replayStatus={props.model.replaying}
             userName={props.model.user?.displayName}
             ChangeTouchName={changeNameACB}
+            toggleListen = {toggleMIDIListeneACB}
+            pressureArray={props.model.pressureArray}
         />
     );
+    function toggleMIDIListeneACB(){
+    props.model.toggleMIDIListener()
+    }
 
     function decreaseACB() {
         props.model.decreaseZone();
