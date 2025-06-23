@@ -591,3 +591,63 @@ h2{
   background: #f9f9f9;
   font-size: 0.9rem;
 }
+
+
+
+.playground-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr 1fr; /* Equal columns */
+  gap: 16px; /* Space between elements */
+  padding: 12px;
+  align-items: center; /* Vertical alignment */
+}
+
+.playground-slider,
+.playground-button {
+
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 14px;
+}
+
+.playground-button {
+  cursor: pointer;
+}
+
+
+
+.playground-table {
+  display: grid;
+  row-gap: 8px;
+  margin-bottom: 24px;
+  padding: 12px;
+}
+
+.playground-header,
+.playground-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr 1fr; /* 4 columns: pad, time, velocity, action */
+  gap: 16px;
+  align-items: center;
+  font-size: 14px;
+  padding: 8px 0;
+}
+
+.playground-header {
+  font-weight: bold;
+  background-color: #e0e0e0;
+  border-radius: 4px;
+}
+
+.playground-row {
+  background-color: #f9f9f9;
+  border-radius: 4px;
+}
+
+.grid-button{
+background-color: #f9f9f9;
+color: #000;
+padding: 0;
+font-weight: bold;
+}
+

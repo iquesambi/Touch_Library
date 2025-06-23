@@ -1,3 +1,4 @@
+import { act } from "react";
 
 const model = {
     midiInputs: [],
@@ -21,6 +22,35 @@ const model = {
     touchName: undefined,
     isListening: false,
     pressureArray:[],
+    multiZoneWiP:
+    [
+      { pad: 3, time: 500, velocity: 80, action: 'Inflation' },
+      { pad: 3, time: 300, velocity: 60, action: 'Deflation' },
+      { pad: 5, time: 700, velocity: 90, action: 'Holding' },
+      { pad: 3 , time: 600, velocity: 90, action: 'Holding' }
+    ],
+    mZCurrent:  { pad: 3, time: 500, velocity: 80, action: 'Inflation' },
+
+    addMZpad(pad){
+        this.mZCurrent.pad=pad
+    },
+
+     addMZtime(time){
+        this.mZCurrent.time=time
+    },
+
+    addMZvelocity(velocity){
+        this.mZCurrent.velocity=velocity
+    },
+
+     addMZaction(action){
+        this.mZCurrent.action=action
+    },
+
+    appenMZ(){
+        this.multiZoneWiP=[...this.multiZoneWiP, this.mZCurrent ]
+
+    },
 
     changeName(name){
         this.touchName = name
@@ -57,7 +87,7 @@ const model = {
       },
     
    
-      recordEvent(button, type, pot) {
+      recordEvent(button, type, pot, singleReadingPressure) {
         if (!this.recording) return;
     
         const now = Date.now();
@@ -67,16 +97,17 @@ const model = {
         const event = {
             button,       
             type,         
-            pot,          // Velocity (from pot)
-           
+            pot,                     // Velocity from potentiometer or MIDI
+            singleReadingPressure,   // New value added here
             timestamp: now,
-            interval: timeSinceLast, 
+            interval: timeSinceLast,
         };
     
         this.sequence.push(event);
-       
+    
         console.log(event);
     },
+    
     lastPressure:0,
     
     async startSerialRead() {
@@ -239,78 +270,94 @@ const model = {
     },
 
 
-    listenForMIDI() {
-        if (this.selectedInput) {
-            this.isListening = true
-            let pressureParts = {}; // Object to hold the velocity data for notes 20 and 22
-             this.pressureArray = []; // Array to store the pressure values
-    
-            this.selectedInput.onmidimessage = (message) => {
-                const [status, note, velocity] = message.data;
-                const command = status & 0xf0;
-    
-                let type;
-                if (command === 0x90 && velocity > 0) {
-                    type = 'press';
-                } else if (command === 0x80 || (command === 0x90 && velocity === 0)) {
-                    type = 'release';
-                } else {
-                    return; // Ignore other messages
+listenForMIDI() {
+    if (this.selectedInput) {
+        this.isListening = true;
+        let pressureParts = {};       // For notes 20 and 22 (continuous readings)
+        let singleParts = {};         // For notes 10 and 11 (single readings)
+        this.pressureArray = [];      // Array to store pressure values
+        let singleReadingPressure = null; // To store a single reading value from notes 10 and 11
+
+        this.selectedInput.onmidimessage = (message) => {
+            const [status, note, velocity] = message.data;
+            const command = status & 0xf0;
+
+            let type;
+            if (command === 0x90 && velocity > 0) {
+                type = 'press';
+            } else if (command === 0x80 || (command === 0x90 && velocity === 0)) {
+                type = 'release';
+            } else {
+                return; // Ignore other messages
+            }
+
+            // Handle continuous pressure from notes 20 & 22
+            if (note === 20 || note === 22) {
+                if (velocity === 0) {
+                    delete pressureParts[note];
+                    return;
                 }
-    
-                // Capture pressure from notes 20 and 22
-                if (note === 20 || note === 22) {
-                    // If velocity is 0, ignore it for pressure calculation
-                    if (velocity === 0) {
-                        delete pressureParts[note]; // Remove the note if its velocity is 0
-                        return;
+
+                pressureParts[note] = velocity;
+
+                if (pressureParts[20] !== undefined && pressureParts[22] !== undefined) {
+                    const intPart = pressureParts[20];
+                    const decimalPart = pressureParts[22];
+                    const pressureValue = parseFloat(`${intPart}.${decimalPart.toString().padStart(2, '0')}`);
+
+                    if (pressureValue !== 0) {
+                        this.pressureArray.push(pressureValue);
                     }
-    
-                    pressureParts[note] = velocity;
-    
-                    // Once both note 20 (integer) and note 22 (decimal) are received
-                    if (pressureParts[20] !== undefined && pressureParts[22] !== undefined) {
-                        const intPart = pressureParts[20]; // Velocity of note 20 as integer
-                        const decimalPart = pressureParts[22]; // Velocity of note 22 as decimal
-    
-                        // Merge them into a floating-point value
-                        const pressureValue = parseFloat(`${intPart}.${decimalPart.toString().padStart(2, '0')}`);
-    
-                        // Only add non-zero pressure values to the array
-                        if (pressureValue !== 0) {
-                            this.pressureArray.push(pressureValue); // Add the merged pressure value to the array
-                        }
-    
-                        // Log the pressure array for now
-                        console.log("Pressure Array:", this.pressureArray);
-    
-                        // Reset pressureParts for next reading
-                        pressureParts = {};
-                    }
-    
-                    return; // Don't treat pressure notes as buttons
+
+                    console.log("Pressure Array:", this.pressureArray);
+                    pressureParts = {};
                 }
-    
-                // Map other MIDI notes to buttons
-                let button;
-                switch (note) {
-                    case 60:
-                        button = 'inflate';
-                        break;
-                    case 67:
-                        button = 'deflate';
-                        break;
-                    default:
-                        button = `note-${note}`;
+
+                return;
+            }
+
+            // Handle single reading from notes 10 & 11
+            if (note === 10 || note === 11) {
+                if (velocity === 0) {
+                    delete singleParts[note];
+                    return;
                 }
-    
-                // Record the event (for non-pressure notes)
-                this.recordEvent(button, type, velocity);
-            };
-        } else {
-            console.error("No MIDI input selected for listening.");
-        }
-    },
+
+                singleParts[note] = velocity;
+
+                if (singleParts[10] !== undefined && singleParts[11] !== undefined) {
+                    const intPart = singleParts[10];
+                    const decimalPart = singleParts[11];
+                    singleReadingPressure = parseFloat(`${intPart}.${decimalPart.toString().padStart(2, '0')}`);
+
+                    console.log("Single Reading Pressure:", singleReadingPressure);
+
+                    singleParts = {};
+                }
+
+                return;
+            }
+
+            // Handle all other note messages
+            let button;
+            switch (note) {
+                case 60:
+                    button = 'inflate';
+                    break;
+                case 67:
+                    button = 'deflate';
+                    break;
+                default:
+                    button = `note-${note}`;
+            }
+
+            this.recordEvent(button, type, velocity, singleReadingPressure);
+        };
+    } else {
+        console.error("No MIDI input selected for listening.");
+    }
+},
+
     
     
     

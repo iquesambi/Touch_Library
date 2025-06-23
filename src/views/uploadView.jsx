@@ -16,26 +16,7 @@ export function UploadView(props) {
     const [pressureData, setPressureData] = useState([]);
     const pressureIntervalRef = useRef(null);
 
-    useEffect(() => {
-        function handleKeyDown(event) {
-            if (event.key === "a") inflateStartACB();
-            else if (event.key === "s") deflateStartACB();
-            else if (event.key === "d") fulldeflateStartACB();
-        }
 
-        function handleKeyUp(event) {
-            if (event.key === "a") inflateStopACB();
-            else if (event.key === "s") deflateStopACB();
-            else if (event.key === "d") fulldeflateStopACB();
-        }
-
-        document.addEventListener("keydown", handleKeyDown);
-        document.addEventListener("keyup", handleKeyUp);
-        return () => {
-            document.removeEventListener("keydown", handleKeyDown);
-            document.removeEventListener("keyup", handleKeyUp);
-        };
-    }, []);
 
     function toggleRecording() {
         if (recording) {

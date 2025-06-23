@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import "./style.css";
 import { useNavigate } from "react-router-dom";
-import { db } from "../../firebaseModel";
+import { db, storage } from "../../firebaseModel";
 import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
+import { ref, listAll, getDownloadURL } from "firebase/storage";
 
 export function LibraryView(props) {
     const [library, setLibrary] = useState([]);
@@ -12,13 +13,35 @@ export function LibraryView(props) {
         const fetchLibraryData = async () => {
             try {
                 const querySnapshot = await getDocs(collection(db, "touches"));
-                const fetchedLibrary = querySnapshot.docs.map((doc) => ({
-                    id: doc.id, // Firestore document name (already formatted)
-                    ...doc.data(),
-                }));
+                const fetchedLibrary = await Promise.all(
+                    querySnapshot.docs.map(async (doc) => {
+                        const data = doc.data();
+                        const mediaUrls = await fetchFirstImage(doc.id);
+                        return {
+                            id: doc.id,
+                            ...data,
+                            imageUrl: mediaUrls, // Add the first image URL to the item
+                        };
+                    })
+                );
                 setLibrary(fetchedLibrary);
             } catch (error) {
                 console.error("Error fetching data from Firestore: ", error);
+            }
+        };
+
+        const fetchFirstImage = async (touchId) => {
+            try {
+                const folderRef = ref(storage, `touchMedia/${touchId}`);
+                const result = await listAll(folderRef);
+                if (result.items.length > 0) {
+                    const firstItemRef = result.items[0];
+                    return await getDownloadURL(firstItemRef);
+                }
+                return null; // No image found
+            } catch (error) {
+                console.error("Error fetching first image: ", error);
+                return null;
             }
         };
 
@@ -65,10 +88,17 @@ export function LibraryView(props) {
             <div className="cards-container">
                 {library.map((item) => {
                     const isAuthor = item.userName === props.userName;
+                    const cardImageStyle = {
+                        backgroundImage: item.imageUrl ? `url(${item.imageUrl})` : 'none',
+                        backgroundColor: item.imageUrl ? 'transparent' : 'black',
+                        backgroundPosition: 'center', // Center the image
+                        backgroundRepeat: 'no-repeat', // Prevent image repetition
+                        backgroundSize: 'cover', // Scale down the image to fit within the container
+                    };
 
                     return (
                         <div className={`card ${isAuthor ? "author-card" : ""}`} key={item.id} onClick={() => navigate(`/visualization/${item.id}`)}>
-                            <div className="card-image"></div>
+                            <div className="card-image" style={cardImageStyle}></div>
                             <div className="card-content">
                                 <h6>{item.name}</h6>
                                 <p>{item.description}</p>
@@ -77,7 +107,7 @@ export function LibraryView(props) {
                             </div>
                             <div className="card-buttons">
                                 <button onClick={(e) => handlePlay(e, item.sequence)}>Play</button>
-                                
+
                                 {isAuthor && (
                                     <button className="delete-button" onClick={(e) => handleDelete(e, item.id)}>
                                         Delete
