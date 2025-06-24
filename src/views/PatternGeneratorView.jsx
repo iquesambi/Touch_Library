@@ -1,6 +1,12 @@
-import React from 'react';
 
+import { toJS } from "mobx";
+import React, { useState, useEffect, useRef } from "react";
+import { db } from "../../firebaseModel";
+import { doc, setDoc } from "firebase/firestore";
 export function BasicVestView(props) {
+
+  const [patternName, setPatternName] = useState('');
+
  
 console.log(props.multiZoneWiP)
    const commonDivStyle = {
@@ -16,6 +22,36 @@ console.log(props.multiZoneWiP)
     fontWeight: 'bold',
     borderRadius: '10px'
   };
+
+
+  function savePatternToDB() {
+  if (!patternName) {
+    alert("Please enter a pattern name.");
+    return;
+  }
+
+  const patternRef = doc(db, "patterns", patternName);
+
+  const patternData = {
+    name: patternName,
+    createdAt: new Date(),
+    sequence: props.multiZoneWiP,
+    userName: props.userName || "anonymous"
+  };
+
+  console.log("Saving pattern:", patternData);
+
+  setDoc(patternRef, patternData)
+    .then(() => {
+      console.log("Pattern saved successfully");
+      alert("Pattern saved!");
+      setPatternName('');
+    })
+    .catch((error) => {
+      console.error("Error saving pattern:", error);
+      alert("Failed to save pattern.");
+    });
+}
 
   return (
         <div className="playground-container">
@@ -209,12 +245,21 @@ console.log(props.multiZoneWiP)
 
 
       <button
-        onClick={props.onPlayPattern}
+        onClick={playACB}
         style={{ padding: '10px 20px', fontSize: '1.1em', backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', transition: 'background-color 0.2s' }}
       >
-        Play Dummy Pattern
+        Play Pattern
       </button>
+<div className="playground-grid">
+   <input
+  value={patternName}
+  onChange={(e) => setPatternName(e.target.value)}
+  placeholder="Pattern name"
+/>
 
+<button onClick={savePatternToDB}>Save Pattern to DB</button>
+
+</div>
     </div>
 
     
@@ -245,6 +290,10 @@ function selectVelocityACB(event) {
  
 }
 
+function playACB() {
+  props.play()
+ 
+}
 
 
 }

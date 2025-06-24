@@ -22,13 +22,7 @@ const model = {
     touchName: undefined,
     isListening: false,
     pressureArray:[],
-    multiZoneWiP:
-    [
-      { pad: 3, time: 500, velocity: 80, action: 'Inflation' },
-      { pad: 3, time: 300, velocity: 60, action: 'Deflation' },
-      { pad: 5, time: 700, velocity: 90, action: 'Holding' },
-      { pad: 3 , time: 600, velocity: 90, action: 'Holding' }
-    ],
+    multiZoneWiP:[],
     mZCurrent:  { pad: 3, time: 500, velocity: 80, action: 'Inflation' },
 
     addMZpad(pad){
@@ -47,10 +41,129 @@ const model = {
         this.mZCurrent.action=action
     },
 
-    appenMZ(){
-        this.multiZoneWiP=[...this.multiZoneWiP, this.mZCurrent ]
+appenMZ() {
+  const newAction = { ...this.mZCurrent };
+  const updated = [...this.multiZoneWiP, newAction];
+  const grouped = updated.reduce((acc, action) => {
+    if (!acc[action.pad]) acc[action.pad] = [];
+    acc[action.pad].push(action);
+    return acc;
+  }, {});
 
-    },
+  const ordered = Object.keys(grouped)
+    .sort((a, b) => Number(a) - Number(b))
+    .flatMap(pad => grouped[pad]);
+
+  this.multiZoneWiP = ordered;
+},
+
+ performMultiZoneSequence(actions) {
+  const result = {};
+
+  this.multiZoneWiP.forEach(action => {
+    const pad = action.pad;
+    if (!result[pad]) {
+      result[pad] = [];
+    }
+    result[pad].push(action);
+  });
+
+  console.log(result)
+  this.performGroupedMIDISequences(result)
+},
+
+
+async performGroupedMIDISequences(groupedActions) {
+  function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  const padToNotes = {
+    1: { inflate: 36, deflate: 37 },
+    2: { inflate: 38, deflate: 39 },
+    3: { inflate: 40, deflate: 41 },
+    4: { inflate: 42, deflate: 43 },
+    5: { inflate: 44, deflate: 45 },
+    6: { inflate: 46, deflate: 47 },
+    7: { inflate: 48, deflate: 49 },
+  };
+
+  const padPromises = Object.values(groupedActions).map(async (actions) => {
+    for (const act of actions) {
+      const pad = act.pad;
+      const time = act.time;
+      const velocity = act.velocity;
+      const actionType = act.action.toLowerCase();
+
+      if (actionType === 'holding') {
+        await sleep(time);
+      } else if (actionType === 'inflation' || actionType === 'deflation') {
+        const note = actionType === 'inflation'
+          ? padToNotes[pad]?.inflate
+          : padToNotes[pad]?.deflate;
+
+        if (note === undefined) {
+          console.error(`No MIDI note mapped for pad ${pad}`);
+          continue;
+        }
+
+        this.buttonDownNote(note, velocity);
+        await sleep(time);
+        this.buttonUpNote(note);
+      } else {
+        console.error(`Unknown action type: ${act.action}`);
+      }
+    }
+  });
+
+  await Promise.all(padPromises);
+  console.log("All pad sequences complete.");
+},
+
+
+async  old() {
+  const sequencesByPad = {};
+
+  // Group actions by pad
+  for (const item of this.multiZoneWiP) {
+    const pad = item.pad;
+    if (!sequencesByPad[pad]) sequencesByPad[pad] = [];
+    sequencesByPad[pad].push(item);
+  }
+
+  const actionMap = {
+    'Inflation': 'inflate',
+    'Deflation': 'deflate',
+    'Holding': 'hold'
+  };
+
+  const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+  // Launch one async sequence per pad
+  const promises = Object.entries(sequencesByPad).map(async ([padStr, actions]) => {
+    const pad = parseInt(padStr);
+    const midiNote = 36 + (pad * 2);
+
+    for (const action of actions) {
+      const velocity = action.velocity;
+      const duration = action.time;
+      const actionType = actionMap[action.action];
+
+      if (actionType === 'inflate' || actionType === 'deflate' || actionType === 'hold') {
+        model.recordEvent(`${actionType}${pad}`, 'press', velocity);
+        model.buttonDownNote(midiNote, velocity);
+        await sleep(duration);
+        model.buttonUpNote(midiNote);
+      } else {
+        // For unknown actions, just wait
+        await sleep(duration);
+      }
+    }
+  });
+
+  await Promise.all(promises); // Wait for all zones to finish
+},
+
 
     changeName(name){
         this.touchName = name
