@@ -40,6 +40,7 @@ const Playground = observer(function (props) {
   }
 
   function fulldeflateDownACB(index) {
+      model.buttonDownNote(50 + index, 100);
     // Skipped as requested for now.
     // If enabled, it would use pots[index] for velocity:
     // model.buttonDownNote(71 + index, pots[index]);
@@ -48,7 +49,7 @@ const Playground = observer(function (props) {
   function fulldeflateUpACB(index) {
     // Skipped as requested for now.
     // If enabled, it would use pots[index] for velocity:
-    // model.buttonUpNote(71 + index, pots[index]);
+    model.buttonUpNote(50 + index, 100);;
   }
 
   function potchangeACB(index, value) {

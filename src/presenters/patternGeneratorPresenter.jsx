@@ -105,6 +105,7 @@ const BasicVestPresenter = observer(function (props) {
   selectTime = {timeACB}
   selectVelocity = {velocityACB}
   play= {play}
+  playSequence = {playSequence}
 
       // Pass state values to the view
    //   deliberatenessValue={deliberateness}
@@ -146,6 +147,12 @@ const BasicVestPresenter = observer(function (props) {
     props.model.performMultiZoneSequence()
     console.log("test")
   }
+
+  function playSequence(x){
+     props.model.performMultiZoneSequenceReplay(x)
+     console.log(x)
+  }
+
 
 }
 )

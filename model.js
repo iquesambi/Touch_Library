@@ -23,7 +23,7 @@ const model = {
     isListening: false,
     pressureArray:[],
     multiZoneWiP:[],
-    mZCurrent:  { pad: 3, time: 500, velocity: 80, action: 'Inflation' },
+    mZCurrent:  { pad: 0, time: 500, velocity: 80, action: 'Inflation' },
 
     addMZpad(pad){
         this.mZCurrent.pad=pad
@@ -72,6 +72,22 @@ appenMZ() {
   this.performGroupedMIDISequences(result)
 },
 
+ performMultiZoneSequenceReplay(actions) {
+  const result = {};
+
+  actions.forEach(action => {
+    const pad = action.pad;
+    if (!result[pad]) {
+      result[pad] = [];
+    }
+    result[pad].push(action);
+  });
+
+  console.log(result)
+  this.performGroupedMIDISequences(result)
+},
+
+
 
 async performGroupedMIDISequences(groupedActions) {
   function sleep(ms) {
@@ -79,13 +95,13 @@ async performGroupedMIDISequences(groupedActions) {
   }
 
   const padToNotes = {
-    1: { inflate: 36, deflate: 37 },
-    2: { inflate: 38, deflate: 39 },
-    3: { inflate: 40, deflate: 41 },
-    4: { inflate: 42, deflate: 43 },
-    5: { inflate: 44, deflate: 45 },
-    6: { inflate: 46, deflate: 47 },
-    7: { inflate: 48, deflate: 49 },
+    0: { inflate: 36, deflate: 37, full: 50 },
+    1: { inflate: 38, deflate: 39, full: 51 },
+    2: { inflate: 40, deflate: 41, full: 52 },
+    3: { inflate: 42, deflate: 43, full: 53 },
+    4: { inflate: 44, deflate: 45, full: 54 },
+    5: { inflate: 46, deflate: 47, full: 55 },
+    6: { inflate: 48, deflate: 49, full: 56 },
   };
 
   const padPromises = Object.values(groupedActions).map(async (actions) => {
@@ -110,6 +126,20 @@ async performGroupedMIDISequences(groupedActions) {
         this.buttonDownNote(note, velocity);
         await sleep(time);
         this.buttonUpNote(note);
+
+      } else if (actionType === 'full deflation') {
+        const fullNote = padToNotes[pad]?.full;
+
+        if (fullNote === undefined) {
+          console.error(`No full deflation note mapped for pad ${pad}`);
+          continue;
+        }
+
+        this.buttonDownNote(fullNote, 100);
+        await sleep(10);
+        this.buttonUpNote(fullNote);
+        await sleep(time);  // Optional: wait after full deflation before next action
+
       } else {
         console.error(`Unknown action type: ${act.action}`);
       }
@@ -119,6 +149,7 @@ async performGroupedMIDISequences(groupedActions) {
   await Promise.all(padPromises);
   console.log("All pad sequences complete.");
 },
+
 
 
 async  old() {

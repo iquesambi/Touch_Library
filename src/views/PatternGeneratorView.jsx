@@ -3,9 +3,13 @@ import { toJS } from "mobx";
 import React, { useState, useEffect, useRef } from "react";
 import { db } from "../../firebaseModel";
 import { doc, setDoc } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
+
 export function BasicVestView(props) {
 
   const [patternName, setPatternName] = useState('');
+  const [savedPatterns, setSavedPatterns] = useState([]);
+
 
  
 console.log(props.multiZoneWiP)
@@ -52,6 +56,24 @@ console.log(props.multiZoneWiP)
       alert("Failed to save pattern.");
     });
 }
+
+useEffect(() => {
+  async function fetchPatterns() {
+    try {
+      const querySnapshot = await getDocs(collection(db, "patterns"));
+      const patterns = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setSavedPatterns(patterns);
+    } catch (error) {
+      console.error("Error fetching patterns:", error);
+    }
+  }
+
+  fetchPatterns();
+}, []);
+
 
   return (
         <div className="playground-container">
@@ -188,6 +210,16 @@ console.log(props.multiZoneWiP)
       */}
 
 <div className="playground-wrapper">
+  <div className="playground-grid">
+   <input
+  value={patternName}
+  onChange={(e) => setPatternName(e.target.value)}
+  placeholder="Pattern name"
+/>
+
+<button onClick={savePatternToDB}>Save Pattern to DB</button>
+
+</div>
   {/* Dummy data table */}
   <div className="playground-table">
     <div className="playground-header">
@@ -225,6 +257,8 @@ console.log(props.multiZoneWiP)
       <option value={"Inflation"}>Inflation</option>
       <option value={"Deflation"}>Deflation</option>
       <option value={"Holding"}>Holding</option>
+      <option value={"full deflation"}>Full deflation</option>
+      
     </select>
 
     <input placeholder="time in milliseconds"  onChange={selectTimeACB}/>
@@ -250,16 +284,27 @@ console.log(props.multiZoneWiP)
       >
         Play Pattern
       </button>
-<div className="playground-grid">
-   <input
-  value={patternName}
-  onChange={(e) => setPatternName(e.target.value)}
-  placeholder="Pattern name"
-/>
 
-<button onClick={savePatternToDB}>Save Pattern to DB</button>
 
+      <div className="pattern-cards">
+  {savedPatterns.map((pattern, idx) => (
+    <div key={idx} className="pattern-card" style={{
+      border: '1px solid #ccc',
+      borderRadius: '10px',
+      padding: '15px',
+      margin: '10px 0',
+      backgroundColor: '#222',
+      color: 'white'
+    }}>
+      <h3>{pattern.name}</h3>
+      <button onClick={() => playPattern(pattern.sequence)} style={{ marginTop: '10px' }}>
+        Play Pattern
+      </button>
+    </div>
+  ))}
 </div>
+
+
     </div>
 
     
@@ -269,6 +314,11 @@ console.log(props.multiZoneWiP)
     props.appendACB()
     
   }
+
+  function playPattern(sequence) {
+  props.playSequence(sequence); // Replace with your actual method
+}
+
 
  function selectPadACB(event) {
   props.selectpad(event.target.value)
