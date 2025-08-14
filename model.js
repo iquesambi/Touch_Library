@@ -22,7 +22,7 @@ const model = {
     touchName: undefined,
     isListening: false,
     pressureArray:[],
-    multiZoneWiP:[],
+    multiZoneWiP:[{ pad: 1, time: 1000, velocity: 80, action: 'Inflation' }],
     mZCurrent:  { pad: 0, time: 500, velocity: 80, action: 'Inflation' },
 
     addMZpad(pad){

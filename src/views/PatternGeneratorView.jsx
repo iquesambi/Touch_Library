@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { db } from "../../firebaseModel";
 import { doc, setDoc } from "firebase/firestore";
 import { collection, getDocs } from "firebase/firestore";
+import { Stage, Layer, Rect, Text, Line } from 'react-konva';
 
 export function BasicVestView(props) {
 
@@ -77,137 +78,51 @@ useEffect(() => {
 
   return (
         <div className="playground-container">
-    {/*  <h1 style={{ marginBottom: '20px', color: '#333' }}>Vest Pattern Visualizer</h1>
-
-      {/* Vest Representation 
-      <div style={{
-        position: 'relative',
-        width: '300px',
-        height: '300px',
-        border: '2px solid #666',
-        borderRadius: '15px',
-        marginBottom: '30px',
-        backgroundColor: '#e0e0e0',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        boxShadow: '0 4px 8px rgba(0,0,0,0.1)'
-      }}>
-
-        
-        <h2 style={{ position: 'absolute', top: '15px', color: '#555', fontSize: '1.2em' }}>Vest Actuators</h2>
- 
-      </div>
-<div style={{
-      display: 'grid',
-      gridTemplateColumns: '1fr 1fr', // Two equal columns
-      gap: '10px', // Gap between rows and columns
-      padding: '20px',
-      backgroundColor: '#f0f0f0', // Light background for the overall grid container
-      maxWidth: '800px',
-      margin: '20px auto', // Center the grid on the page
-      border: '1px solid #ccc',
-      borderRadius: '8px',
-      boxShadow: '0 4px 8px rgba(0,0,0,0.1)'
-    }}>
-      {/* Row 1: Spans both columns 
-  
-    </div>
-
-
-
-    <div style={{
-      display: 'grid',
-      gridTemplateColumns: '1fr 1fr', // Two equal columns
-      gap: '10px', // Gap between rows and columns
-      padding: '20px',
-      maxWidth: '800px',
-      margin: '20px auto', // Center the grid on the page
    
-    }}>
-      {/* Row 1: Spans both columns 
-      <div style={{
-        ...commonDivStyle,
-        gridColumn: 'span 2', // This div spans both columns
-      }}>
-         Pad 6
-         
-      </div>
+<div style={{ marginTop: '40px' }}>
+<Stage width={800} height={200}>
+  <Layer>
+    <Line points={[0, 100, 800, 100]} stroke="black" strokeWidth={2} />
 
-      {/* Row 2 
-      <div style={commonDivStyle}>
-        Pad 5
-      </div>
-      <div style={commonDivStyle}>
-         Pad 4
-      </div>
+    {props.multiZoneWiP.map((item, index) => {
+  const nextItem = props.multiZoneWiP[index + 1];
+  const timeScale = 0.5; // scale time to pixels
+  const velocityScale = 0.3;
 
-      {/* Row 3 
-      <div style={commonDivStyle}>
-        Pad 3
-      </div>
-      <div style={commonDivStyle}>
-         Pad 2
-      </div>
+  const x = item.time * timeScale;
+  const y = 100;
 
-      {/* Row 4 
-      <div style={commonDivStyle}>
-     Pad 1
-      </div>
-      <div style={commonDivStyle}>
-       Pad 0
-      </div>
-    </div>
-      {/* Sliders 
-      <div >
-        <h2 style={{ marginBottom: '15px', color: '#555', fontSize: '1.1em' }}>Parameters (Dummy)</h2>
-        <div style={{ marginBottom: '15px' }}>
-          <label htmlFor="deliberateness" style={{ display: 'block', marginBottom: '5px', color: '#666' }}>
-            Deliberateness: <span style={{ fontWeight: 'bold', color: '#333' }}>{props.deliberatenessValue}</span>
-          </label>
-          <input
-          className="playground-slider"
-            type="range"
-            id="deliberateness"
-            min="0"
-            max="100"
-            value={props.deliberatenessValue}
-            onChange={(e) => props.onDeliberatenessChange(parseInt(e.target.value, 10))}
-            style={{ width: '100%' }}
-          />
-        </div>
-        <div style={{ marginBottom: '15px' }}>
-          <label htmlFor="spatiality" style={{ display: 'block', marginBottom: '5px', color: '#666' }}>
-            Spatiality: <span style={{ fontWeight: 'bold', color: '#333' }}>{props.spatialityValue}</span>
-          </label>
-          <input
-          className="playground-slider"
-            type="range"
-            id="spatiality"
-            min="0"
-            max="100"
-            value={props.spatialityValue}
-            onChange={(e) => props.onSpatialityChange(parseInt(e.target.value, 10))}
-            style={{ width: '100%' }}
-          />
-        </div>
-        <div>
-          <label htmlFor="rhythmic" style={{ display: 'block', marginBottom: '5px', color: '#666' }}>
-            Rhythmic: <span style={{ fontWeight: 'bold', color: '#333' }}>{props.rhythmicValue}</span>
-          </label>
-          <input
-          className="playground-slider"
-            type="range"
-            id="rhythmic"
-            min="0"
-            max="100"
-            value={props.rhythmicValue}
-            onChange={(e) => props.onRhythmicChange(parseInt(e.target.value, 10))}
-            style={{ width: '100%' }}
-          />
-        </div>
-      </div>
-      */}
+  const duration = nextItem ? nextItem.time - item.time : 500; // fallback duration
+  const rectWidth = item.time * timeScale;
+  const rectHeight = item.velocity * velocityScale;
+
+  const colorMap = {
+    Inflation: "lime",
+    Deflation: "red",
+    Holding: "yellow",
+    "full deflation": "blue"
+  };
+  const color = colorMap[item.action] || "white";
+
+  return (
+    <Rect
+      key={index}
+      x={0}
+      y={y - rectHeight / 2}
+      width={rectWidth}
+      height={rectHeight}
+      fill={color}
+      stroke="white"
+      strokeWidth={0.5}
+    />
+  );
+})}
+
+
+  </Layer>
+</Stage>
+</div>
+
 
 <div className="playground-wrapper">
   <div className="playground-grid">
