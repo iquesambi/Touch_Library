@@ -15,6 +15,7 @@ export function SideMenuView(props){
         <li><h4><a href="#/upload">Upload</a></h4></li>
         <li><h4><a href="#/playground">play</a></h4></li>
         <li><h4><a href="#/pattern">pattern</a></h4></li>
+        <li><h4><a href="#/shape">shape</a></h4></li>
 
               
        

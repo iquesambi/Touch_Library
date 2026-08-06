@@ -458,7 +458,11 @@ listenForMIDI() {
                     const pressureValue = parseFloat(`${intPart}.${decimalPart.toString().padStart(2, '0')}`);
 
                     if (pressureValue !== 0) {
-                        this.pressureArray.push(pressureValue);
+                        // Timestamped so the chart can align this against recorded
+                        // button events on the real clock, instead of assuming a
+                        // fixed 20Hz rate (the Arduino pauses sending these for ~200ms
+                        // around every button release while it reads the sensor).
+                        this.pressureArray.push({ value: pressureValue, timestamp: Date.now() });
                     }
 
                     console.log("Pressure Array:", this.pressureArray);

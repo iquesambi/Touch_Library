@@ -4,13 +4,23 @@ import { useParams } from "react-router-dom";
 import { db, storage } from "../../firebaseModel";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { ref, listAll, getDownloadURL, uploadBytes } from "firebase/storage";
+import {
+  VIEW_MODES,
+  getRecordingStartMs,
+  computeNetVolumeSeries,
+  computePressurePoints,
+  buildChartUpdate,
+  baseChartOptions,
+} from "./touchChartConfig";
 import "./style.css";
 
 export function VisualizationView(props) {
   const lineChartRef = useRef(null);
+  const chartInstanceRef = useRef(null);
   const scatterChartRef = useRef(null);
   const { id } = useParams();
   const [touchData, setTouchData] = useState(null);
+  const [viewMode, setViewMode] = useState(VIEW_MODES.FLOW);
   const [selectedImage, setSelectedImage] = useState(null);
   const [isChartVisible, setIsChartVisible] = useState(false);
   const [isGalleryVisible, setIsGalleryVisible] = useState(false);
@@ -34,14 +44,6 @@ export function VisualizationView(props) {
           setTouchData(data);
           setEditedName(data.name);
           setEditedDescription(data.description);
-
-          // Build the line chart from 20HzPressureArray
-          const pressureArray = data["pressure"];
-          if (Array.isArray(pressureArray)) {
-            const sampledData = pressureArray.filter((_, index) => index % 40 === 0);
-            const labels = sampledData.map((_, i) => i * 1); // Every 2 seconds
-            drawLineChart(labels, sampledData);
-          }
         } else {
           console.error("No such document!");
         }
@@ -52,6 +54,42 @@ export function VisualizationView(props) {
 
     fetchTouchData();
   }, [id]);
+
+  // (Re)draws the touch chart whenever the fetched data or the selected view
+  // mode changes. Same rendering logic as the live recording chart in
+  // uploadView.jsx, just fed from a finished/saved sequence instead of a
+  // live one (no "now" extension needed).
+  useEffect(() => {
+    const lineCtx = lineChartRef.current?.getContext("2d");
+    if (!lineCtx || !touchData) return;
+
+    const events = Array.isArray(touchData.sequence) ? touchData.sequence : [];
+    const pressureSamples = Array.isArray(touchData.pressure) ? touchData.pressure : [];
+    const t0 = getRecordingStartMs(events, pressureSamples);
+    const volumePoints = computeNetVolumeSeries(events, t0);
+    const pressurePoints = computePressurePoints(pressureSamples, t0);
+    const { datasets, scaleY, scaleY1 } = buildChartUpdate(viewMode, volumePoints, pressurePoints);
+
+    const options = baseChartOptions();
+    options.scales.y = scaleY;
+    if (scaleY1) options.scales.y1 = scaleY1;
+
+    const lineChart = new Chart(lineCtx, {
+      type: "line",
+      data: { datasets },
+      options,
+    });
+    chartInstanceRef.current = lineChart;
+
+    return () => {
+      lineChart.destroy();
+      chartInstanceRef.current = null;
+    };
+  }, [touchData, viewMode]);
+
+  function handleViewModeChange(evt) {
+    setViewMode(evt.target.value);
+  }
 
   useEffect(() => {
     const loadMedia = async () => {
@@ -68,46 +106,6 @@ export function VisualizationView(props) {
 
     loadMedia();
   }, [id]);
-
-  const drawLineChart = (labels, dataPoints) => {
-    const ctx = lineChartRef.current?.getContext("2d");
-    if (ctx) {
-      const lineChart = new Chart(ctx, {
-        type: "line",
-        data: {
-          labels: labels,
-          datasets: [
-            {
-              label: "Pressure over Time",
-              data: dataPoints,
-              borderColor: "rgba(0, 0, 0, 1)",
-              backgroundColor: "rgba(241, 245, 249, 1)",
-              fill: true,
-              borderWidth: 3,
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false },
-          },
-          scales: {
-            x: { display: false },
-            y: { display: false },
-          },
-          elements: {
-            line: { tension: 0.1 },
-          },
-        },
-      });
-
-      return () => {
-        lineChart.destroy();
-      };
-    }
-  };
 
   const handleFileUpload = async (files) => {
     if (isAuthor) {
@@ -326,6 +324,12 @@ export function VisualizationView(props) {
         </p>
 
         <button>Play</button>
+
+        <select value={viewMode} onChange={handleViewModeChange}>
+          <option value={VIEW_MODES.FLOW}>Inflar e desinflar</option>
+          <option value={VIEW_MODES.PRESSURE}>Pressão interna</option>
+          <option value={VIEW_MODES.BOTH}>Ambos sobrepostos</option>
+        </select>
 
         <div className="chart">
           <canvas ref={lineChartRef}></canvas>
