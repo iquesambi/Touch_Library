@@ -13,6 +13,7 @@ const Upload = observer(function (props) {
 
     return (
         <UploadView
+            model={props.model}
             zones={props.model.zones}
             decrease={decreaseACB}
             increase={increaseACB}

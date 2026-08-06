@@ -17,26 +17,30 @@ const Playground = observer(function (props) {
 
   function inflateDownACB(index) {
     // Use the value from the local 'pots' state
-    model.recordEvent(`inflate${index}`, "press", pots[index]);
-    model.buttonDownNote(36 + (index * 2), pots[index]); // MIDI note C2 (36) + (index * 2)
+    const note = 36 + (index * 2); // MIDI note C2 (36) + (index * 2)
+    model.recordEvent(`inflate${index}`, "press", pots[index], undefined, note);
+    model.buttonDownNote(note, pots[index]);
   }
 
   function inflateUpACB(index) {
     // Use the value from the local 'pots' state
-    model.recordEvent(`inflate${index}`, "release", pots[index]);
-    model.buttonUpNote(36 + (index * 2), pots[index]);
+    const note = 36 + (index * 2);
+    model.recordEvent(`inflate${index}`, "release", pots[index], undefined, note);
+    model.buttonUpNote(note, pots[index]);
   }
 
   function deflateDownACB(index) {
     // Use the value from the local 'pots' state
-    model.recordEvent(`deflate${index}`, "press", pots[index]);
-    model.buttonDownNote(37 + (index * 2), pots[index]); // MIDI note C#2 (37) + (index * 2)
+    const note = 37 + (index * 2); // MIDI note C#2 (37) + (index * 2)
+    model.recordEvent(`deflate${index}`, "press", pots[index], undefined, note);
+    model.buttonDownNote(note, pots[index]);
   }
 
   function deflateUpACB(index) {
     // Use the value from the local 'pots' state
-    model.recordEvent(`deflate${index}`, "release", pots[index]);
-    model.buttonUpNote(37 + (index * 2), pots[index]);
+    const note = 37 + (index * 2);
+    model.recordEvent(`deflate${index}`, "release", pots[index], undefined, note);
+    model.buttonUpNote(note, pots[index]);
   }
 
   function fulldeflateDownACB(index) {

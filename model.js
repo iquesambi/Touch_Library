@@ -231,18 +231,19 @@ async  old() {
       },
     
    
-      recordEvent(button, type, pot, singleReadingPressure) {
+      recordEvent(button, type, pot, singleReadingPressure, note) {
         if (!this.recording) return;
-    
+
         const now = Date.now();
         const timeSinceLast = this.lastEventTime ? now - this.lastEventTime : 0;
         this.lastEventTime = now;
-    
+
         const event = {
-            button,       
-            type,         
+            button,
+            type,
             pot,                     // Velocity from potentiometer or MIDI
             singleReadingPressure,   // New value added here
+            note,                    // Actual MIDI note used, so playback doesn't have to re-derive it
             timestamp: now,
             interval: timeSinceLast,
         };
@@ -355,14 +356,21 @@ async  old() {
     },
 
     async connectToSerialAndMIDI() {
-        try {
-            console.log("Connecting to Serial and MIDI...");
-            await this.connectToSerial();
-            await this.initializeMIDI();
+        console.log("Connecting to Serial and MIDI...");
 
-            console.log("Successfully connected to both Serial and MIDI.");
+        // Serial and MIDI are independent connections — a failure in one
+        // (e.g. the Serial port picker being cancelled) must not skip the other.
+        try {
+            await this.connectToSerial();
         } catch (error) {
-            console.error("Error connecting to Serial or MIDI:", error);
+            console.error("Error connecting to Serial:", error);
+        }
+
+        try {
+            await this.initializeMIDI();
+            console.log("Successfully connected to MIDI.");
+        } catch (error) {
+            console.error("Error connecting to MIDI:", error);
         }
     },
 
@@ -665,6 +673,8 @@ listenForMIDI() {
             const noteOnMessage = [0x90, note, velocity];
             this.selectedOutput.send(noteOnMessage);
             console.log(`MIDI Note ${note} button down with velocity ${velocity}`);
+        } else {
+            console.error("No MIDI output device selected — note not sent. Click 'Authorize Midi Devices'.");
         }
     },
 
@@ -673,6 +683,8 @@ listenForMIDI() {
             const noteOffMessage = [0x80, note, 0];
             this.selectedOutput.send(noteOffMessage);
             console.log(`MIDI Note ${note} button up`);
+        } else {
+            console.error("No MIDI output device selected — note not sent. Click 'Authorize Midi Devices'.");
         }
     },
 
@@ -724,11 +736,13 @@ listenForMIDI() {
                 return;
             }
     
-            const { button, type, pot, interval } = this.sequence[i];
-    
+            const { button, type, pot, interval, note: recordedNote } = this.sequence[i];
+
             await new Promise(resolve => setTimeout(resolve, interval));
-    
-            let note = button === "inflate" ? 60 : 67;
+
+            // Fall back to the old inflate/deflate guess only for legacy sequences
+            // recorded before "note" was stored on the event.
+            let note = recordedNote !== undefined ? recordedNote : (button === "inflate" ? 60 : 67);
             let velocity = pot;
     
             if (type === "press") {

@@ -371,36 +371,37 @@ h4{
   background-color: #F1F5F9;
 }
 
-/* Center the entire PlaygroundView component */
-.playground-container {
+/* Page wrapper — centers the controls card */
+.playground-page {
   display: flex;
-  flex-direction: column;
   justify-content: center;
   align-items: center;
   height: 100vh;
-  gap: 1.5rem; /* Add spacing between rows */
-  background-color: white; /* Matches body background */
-  font-family: "Inter", sans-serif; /* Reuse the global font */
+  background-color: white;
+  font-family: "Inter", sans-serif;
 }
 
-/* Row for Inflate and Deflate buttons */
-.button-row {
+/* Controls card */
+.playground-controls {
   display: flex;
-  gap: 1rem; /* Space between buttons */
+  flex-direction: column;
+  gap: 12px;
+  width: 400px;
 }
 
-/* Single button row for Fully deflate */
-.single-button {
-  display: flex;
-  justify-content: center;
+/* Row: two equal-width buttons */
+.pg-row-two-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
 }
 
-/* Slider container */
-.slider-container {
-  width: 200px; /* Ensures the slider aligns with buttons */
+/* Row: full-width element */
+.pg-row-full {
+  width: 100%;
 }
 
-/* Button styles (reuse existing button base) */
+/* Button styles */
 .playground-button {
   background-color: black;
   color: white;
@@ -410,7 +411,9 @@ h4{
   font-family: "Inter", sans-serif;
   font-size: 14px;
   cursor: pointer;
-  width: 200px; /* Ensures consistent size with the slider */
+  width: 100%;
+  margin: 0;
+  box-sizing: border-box;
 }
 
 /* Range slider */

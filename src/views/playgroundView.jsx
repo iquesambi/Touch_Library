@@ -22,10 +22,10 @@ export function PlaygroundView(props) {
   }, []);
 
   return (
-    <div className="playground-container">
-      {[...Array(7)].map((_, i) => (
-        <div key={i} className="playground-row">
-          <div className="button-row">
+    <div className="playground-page">
+      {[...Array(1)].map((_, i) => (
+        <div key={i} className="playground-controls">
+          <div className="pg-row-two-cols">
             <button
               className="playground-button"
               onMouseDown={() => props.inflateDown[i]()}
@@ -40,6 +40,18 @@ export function PlaygroundView(props) {
             >
               Deflate
             </button>
+          </div>
+          <div className="pg-row-full">
+            <input
+              className="playground-slider"
+              type="range"
+              min="0"
+              max="127"
+              value={props.potValues[i]}
+              onChange={(evt) => props.potchange[i](evt.target.value)}
+            />
+          </div>
+          <div className="pg-row-full">
             <button
               className="playground-button"
               onMouseDown={() => props.fulldeflateDown[i]()}
@@ -47,16 +59,6 @@ export function PlaygroundView(props) {
             >
               Fully deflate
             </button>
-          </div>
-          <div className="slider-container">
-            <input
-              className="playground-slider"
-              type="range"
-              min="0"
-              max="127"
-              value={props.potValues[i]} // <--- ADD THIS LINE to make it a controlled component
-              onChange={(evt) => props.potchange[i](evt.target.value)}
-            />
           </div>
         </div>
       ))}
