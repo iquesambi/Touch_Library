@@ -1,22 +1,20 @@
 import { act } from "react";
+import { LANGUAGE_STORAGE_KEY } from "./src/i18n";
 
 const model = {
+    language: "en",
+    midiAccess: null,
     midiInputs: [],
     midiOutputs: [],
     selectedInput: null,
     selectedOutput: null,
     single_device: true,
     midiAuth: false,
-    serialPort: null,
-    writer: null,
-    reader: null,
-    readData: [],
     zones: 1,
     currentTouch: { touch: [], name: null, tube: null, date: "4/10" },
     receivedArray: [],
     testPersist: [],
     library: [{ touch: [], name: "dragon Touch", tube: null, date: "4/10", created: "Henrique", description: "a dragon touch" }, { touch: [], name: "dragon Touch II", tube: null, date: "4/10", created: "Henrique", description: "a dragon touch" },{ touch: [], name: "weird Touch", tube: null, date: "4/10", created: "Henrique", description: "a dragon touch" }, { touch: [], name: "eletric feeling", tube: null, date: "4/10", created: "Henrique", description: "a dragon touch" }],
-    isSerialConnected: false,
     side: false,
     pot:49,
     touchName: undefined,
@@ -227,11 +225,10 @@ async  old() {
         this.sequence = [];
         this.lastEventTime = Date.now();
         console.log("Recording started...");
-        this.startSerialRead()
       },
     
    
-      recordEvent(button, type, pot, singleReadingPressure, note) {
+      recordEvent(button, type, pot, singleReadingPressure = null, note = null) {
         if (!this.recording) return;
 
         const now = Date.now();
@@ -241,9 +238,9 @@ async  old() {
         const event = {
             button,
             type,
-            pot,                     // Velocity from potentiometer or MIDI
-            singleReadingPressure,   // New value added here
-            note,                    // Actual MIDI note used, so playback doesn't have to re-derive it
+            pot: pot ?? null,        // Velocity from potentiometer or MIDI
+            singleReadingPressure,   // New value added here — null (not undefined) when not applicable, Firestore rejects undefined
+            note,                    // Actual MIDI note used, so playback doesn't have to re-derive it — null when triggered by a button, not MIDI
             timestamp: now,
             interval: timeSinceLast,
         };
@@ -254,33 +251,7 @@ async  old() {
     },
     
     lastPressure:0,
-    
-    async startSerialRead() {
-        if (!this.serialPort || this.reader) return; // Prevent multiple readers
-    
-        this.reader = this.serialPort.readable.getReader();
-        console.log("Serial reading started...");
-    
-        while (this.recording) {  // Read only when recording is active
-            try {
-                const { value, done } = await this.reader.read();
-                if (done) break;
-    
-                if (value) {
-                    this.lastPressure = parseInt(value.trim()); // Save the latest pressure value
-                    console.log("Updated pressure:", this.lastPressure);
-                }
-            } catch (error) {
-                console.error("Error reading serial data:", error);
-                break;
-            }
-        }
-    
-        // Release the reader when done
-        this.reader.releaseLock();
-        this.reader = null;
-    },
-    
+
       stopRecording() {
         this.recording = false;
         console.log("Recording stopped.");
@@ -355,16 +326,8 @@ async  old() {
         }
     },
 
-    async connectToSerialAndMIDI() {
-        console.log("Connecting to Serial and MIDI...");
-
-        // Serial and MIDI are independent connections — a failure in one
-        // (e.g. the Serial port picker being cancelled) must not skip the other.
-        try {
-            await this.connectToSerial();
-        } catch (error) {
-            console.error("Error connecting to Serial:", error);
-        }
+    async connectToMIDI() {
+        console.log("Connecting to MIDI...");
 
         try {
             await this.initializeMIDI();
@@ -377,30 +340,64 @@ async  old() {
     async initializeMIDI() {
         try {
             const midiAccess = await navigator.requestMIDIAccess();
-            this.midiInputs = Array.from(midiAccess.inputs.values());
-            this.midiOutputs = Array.from(midiAccess.outputs.values());
+            this.midiAccess = midiAccess;
 
-            // Automatically select the first MIDI input and output
-            if (this.midiInputs.length > 0) {
-                this.selectedInput = this.midiInputs[0];
-                console.log(`Selected MIDI Input: ${this.selectedInput.name}`);
-            }
+            // React to devices connecting/disconnecting after the initial scan
+            // (e.g. the BLE device dropping out of range and coming back) so the
+            // connection recovers on its own instead of needing another manual
+            // "Authorize Midi Devices" click.
+            midiAccess.onstatechange = () => {
+                console.log("MIDI state changed, refreshing device list.");
+                this.refreshMIDIDevices();
+            };
 
-            if (this.midiOutputs.length > 0) {
-                this.selectedOutput = this.midiOutputs[0];
-                console.log(`Selected MIDI Output: ${this.selectedOutput.name}`);
-            }
-
-            // Set midiAuth to true if a device is selected
-            if (this.selectedInput && this.selectedOutput) {
-                this.midiAuth = true;
-                console.log("MIDI devices authenticated.");
-
-                // Listen for MIDI input (including note 127)
-               // this.listenForMIDI();
-            }
+            this.refreshMIDIDevices();
         } catch (error) {
             console.error('Web MIDI API not supported in this browser.', error);
+        }
+    },
+
+    refreshMIDIDevices() {
+        if (!this.midiAccess) return;
+
+        this.midiInputs = Array.from(this.midiAccess.inputs.values());
+        this.midiOutputs = Array.from(this.midiAccess.outputs.values());
+
+        // Prefer the ESP32 BLE MIDI device by name (it advertises as "Touch
+        // Library" once paired in the OS's Bluetooth MIDI settings) so a
+        // USB controller plugged in alongside it doesn't get picked instead.
+        // Falls back to the first available device if no BLE match is found.
+        const preferredDeviceName = "Touch Library";
+        const byPreferredName = (device) => device.name && device.name.includes(preferredDeviceName);
+        const connected = (device) => device.state === "connected";
+
+        const wasListening = this.isListening;
+
+        if (this.midiInputs.length > 0) {
+            this.selectedInput = this.midiInputs.find((d) => byPreferredName(d) && connected(d))
+                || this.midiInputs.find(connected)
+                || this.midiInputs[0];
+            console.log(`Selected MIDI Input: ${this.selectedInput.name} (${this.selectedInput.state})`);
+        } else {
+            this.selectedInput = null;
+        }
+
+        if (this.midiOutputs.length > 0) {
+            this.selectedOutput = this.midiOutputs.find((d) => byPreferredName(d) && connected(d))
+                || this.midiOutputs.find(connected)
+                || this.midiOutputs[0];
+            console.log(`Selected MIDI Output: ${this.selectedOutput.name} (${this.selectedOutput.state})`);
+        } else {
+            this.selectedOutput = null;
+        }
+
+        // Set midiAuth to true if a device is selected
+        this.midiAuth = !!(this.selectedInput && this.selectedOutput);
+
+        // If we were actively listening before the device dropped out, and it
+        // (or a replacement) is now back, resume listening automatically.
+        if (wasListening && this.selectedInput && this.selectedInput.state === "connected") {
+            this.listenForMIDI();
         }
     },
 
@@ -503,6 +500,9 @@ listenForMIDI() {
                 case 67:
                     button = 'deflate';
                     break;
+                case 70:
+                    button = 'stop';
+                    break;
                 default:
                     button = `note-${note}`;
             }
@@ -549,23 +549,6 @@ listenForMIDI() {
                 default:
                     console.error(`Unknown action: ${action}`);
             }
-        }
-    },
-
-    async connectToSerial() {
-        try {
-            // Request a port and open a connection
-            this.serialPort = await navigator.serial.requestPort();
-            await this.serialPort.open({ baudRate: 9600 });
-            console.log("Serial port connected");
-
-            this.isSerialConnected = true;  // Set isSerialConnected to true when connected
-            this.writer = this.serialPort.writable.getWriter();
-            this.reader = this.serialPort.readable.getReader();
-            this.readSerialData();
-        } catch (error) {
-            console.error("Failed to connect to serial port:", error);
-            this.isSerialConnected = false;
         }
     },
 
@@ -667,7 +650,7 @@ listenForMIDI() {
     },
 
     requestArray() {
-        if (this.selectedOutput || this.serialPort) {
+        if (this.selectedOutput) {
             this.sendMidiNote(127, 127);
         }
     },
@@ -700,21 +683,12 @@ listenForMIDI() {
         }
     },
 
-    readSerialData: async function () {
-        while (this.serialPort.readable) {
-            try {
-                const { value, done } = await this.reader.read();
-                if (done) {
-                    console.log('Serial port closed');
-                    this.reader.releaseLock();
-                    break;
-                }
-                if (value) {
-                    this.readData.push(value);
-                }
-            } catch (error) {
-                console.error('Error reading data:', error);
-            }
+    setLanguage(lang) {
+        this.language = lang;
+        try {
+            localStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
+        } catch (error) {
+            console.error("Could not persist language preference:", error);
         }
     },
 
@@ -744,9 +718,12 @@ listenForMIDI() {
 
             await new Promise(resolve => setTimeout(resolve, interval));
 
-            // Fall back to the old inflate/deflate guess only for legacy sequences
-            // recorded before "note" was stored on the event.
-            let note = recordedNote !== undefined ? recordedNote : (button === "inflate" ? 60 : 67);
+            // Fall back to the old inflate/deflate guess for legacy sequences
+            // recorded before "note" was stored on the event, and for events
+            // recorded from a button press (which never had a MIDI note to
+            // begin with — recordEvent() defaults it to null, not just
+            // pre-existing sequences leaving it undefined).
+            let note = recordedNote != null ? recordedNote : (button === "inflate" ? 60 : 67);
             let velocity = pot;
     
             if (type === "press") {

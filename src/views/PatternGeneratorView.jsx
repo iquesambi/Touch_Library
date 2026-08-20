@@ -5,6 +5,7 @@ import { db } from "../../firebaseModel";
 import { doc, setDoc } from "firebase/firestore";
 import { collection, getDocs } from "firebase/firestore";
 import { Stage, Layer, Rect, Text, Line } from 'react-konva';
+import { t } from "../i18n";
 
 export function BasicVestView(props) {
 
@@ -31,7 +32,7 @@ console.log(props.multiZoneWiP)
 
   function savePatternToDB() {
   if (!patternName) {
-    alert("Please enter a pattern name.");
+    alert(t("enter_pattern_name_alert", props.language));
     return;
   }
 
@@ -49,12 +50,12 @@ console.log(props.multiZoneWiP)
   setDoc(patternRef, patternData)
     .then(() => {
       console.log("Pattern saved successfully");
-      alert("Pattern saved!");
+      alert(t("pattern_saved_alert", props.language));
       setPatternName('');
     })
     .catch((error) => {
       console.error("Error saving pattern:", error);
-      alert("Failed to save pattern.");
+      alert(t("pattern_save_failed_alert", props.language));
     });
 }
 
@@ -129,19 +130,19 @@ useEffect(() => {
    <input
   value={patternName}
   onChange={(e) => setPatternName(e.target.value)}
-  placeholder="Pattern name"
+  placeholder={t("pattern_name_placeholder", props.language)}
 />
 
-<button onClick={savePatternToDB}>Save Pattern to DB</button>
+<button onClick={savePatternToDB}>{t("save_pattern_to_db", props.language)}</button>
 
 </div>
   {/* Dummy data table */}
   <div className="playground-table">
     <div className="playground-header">
-      <div>Pad</div>
-      <div>Action</div>
-      <div>Time</div>
-      <div>Velocity</div>
+      <div>{t("pad_header", props.language)}</div>
+      <div>{t("action_header", props.language)}</div>
+      <div>{t("time_header", props.language)}</div>
+      <div>{t("velocity_header", props.language)}</div>
     </div>
     {props.multiZoneWiP.map((item, index) => (
       <div className="playground-row" key={index}>
@@ -159,24 +160,24 @@ useEffect(() => {
   {/* Input grid for adding actions */}
   <div className="playground-grid">
     <select onChange={selectPadACB}>
-      <option value={0}>pad 0</option>
-      <option value={1}>pad 1</option>
-      <option value={2}>pad 2</option>
-      <option value={3}>pad 3</option>
-      <option value={4}>pad 4</option>
-      <option value={5}>pad 5</option>
-      <option value={6}>pad 6</option>
+      <option value={0}>{t("pad_label", props.language)} 0</option>
+      <option value={1}>{t("pad_label", props.language)} 1</option>
+      <option value={2}>{t("pad_label", props.language)} 2</option>
+      <option value={3}>{t("pad_label", props.language)} 3</option>
+      <option value={4}>{t("pad_label", props.language)} 4</option>
+      <option value={5}>{t("pad_label", props.language)} 5</option>
+      <option value={6}>{t("pad_label", props.language)} 6</option>
     </select>
 
     <select onChange={selectActionACB}>
-      <option value={"Inflation"}>Inflation</option>
-      <option value={"Deflation"}>Deflation</option>
-      <option value={"Holding"}>Holding</option>
-      <option value={"full deflation"}>Full deflation</option>
-      
+      <option value={"Inflation"}>{t("action_inflation", props.language)}</option>
+      <option value={"Deflation"}>{t("action_deflation", props.language)}</option>
+      <option value={"Holding"}>{t("action_holding", props.language)}</option>
+      <option value={"full deflation"}>{t("action_full_deflation", props.language)}</option>
+
     </select>
 
-    <input placeholder="time in milliseconds"  onChange={selectTimeACB}/>
+    <input placeholder={t("time_ms_placeholder", props.language)}  onChange={selectTimeACB}/>
 
     <input
       className="playground-slider"
@@ -187,33 +188,23 @@ useEffect(() => {
       onChange={selectVelocityACB}
     />
 
-    <button className="playground-button"  onClick={appendACB}>Add Action</button>
+    <button className="playground-button"  onClick={appendACB}>{t("add_action_button", props.language)}</button>
   </div>
 </div>
 
 
 
-      <button
-        onClick={playACB}
-        style={{ padding: '10px 20px', fontSize: '1.1em', backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', transition: 'background-color 0.2s' }}
-      >
-        Play Pattern
+      <button onClick={playACB}>
+        {t("play_pattern_button", props.language)}
       </button>
 
 
       <div className="pattern-cards">
   {savedPatterns.map((pattern, idx) => (
-    <div key={idx} className="pattern-card" style={{
-      border: '1px solid #ccc',
-      borderRadius: '10px',
-      padding: '15px',
-      margin: '10px 0',
-      backgroundColor: '#222',
-      color: 'white'
-    }}>
+    <div key={idx} className="pattern-card">
       <h3>{pattern.name}</h3>
-      <button onClick={() => playPattern(pattern.sequence)} style={{ marginTop: '10px' }}>
-        Play Pattern
+      <button onClick={() => playPattern(pattern.sequence)}>
+        {t("play_pattern_button", props.language)}
       </button>
     </div>
   ))}

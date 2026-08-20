@@ -90,6 +90,7 @@ const Playground = observer(function (props) {
       start={startACB}
       stop={stopACB}
       replay={replayACB}
+      language={props.model.language}
     />
   );
 });

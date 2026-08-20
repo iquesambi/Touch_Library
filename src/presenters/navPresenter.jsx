@@ -11,6 +11,7 @@ const Nav = observer(function (props) {
             userImage={props.model.user?.photoURL}
             userName={props.model.user?.displayName}
             onLoginClick={loginACB}
+            language={props.model.language}
         />
     );
 

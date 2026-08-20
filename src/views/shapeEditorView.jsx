@@ -3,6 +3,7 @@ import { Chart } from "chart.js/auto";
 import "chartjs-plugin-dragdata";
 import { curveToActions, enforcePhysicalLimits } from "./touchChartConfig";
 import "./style.css";
+import { t } from "../i18n";
 
 // DAW-style timeline: starts short and grows as the shape needs more room,
 // either automatically (a point gets pushed past the edge) or via the
@@ -114,7 +115,7 @@ export function ShapeEditorView(props) {
       data: {
         datasets: [
           {
-            label: "Volume alvo (mL)",
+            label: t("chart_target_volume_label", props.language),
             data: pointsRef.current,
             borderColor: "rgba(0, 0, 0, 1)",
             backgroundColor: "rgba(128, 128, 128, 0.25)",
@@ -149,13 +150,13 @@ export function ShapeEditorView(props) {
             min: 0,
             max: timelineSecondsRef.current,
             grid: { display: false },
-            title: { display: true, text: "Tempo (s)" },
+            title: { display: true, text: t("chart_time_axis_label", props.language) },
           },
           y: {
             min: 0,
             max: maxVolumeRef.current,
             grid: { display: false },
-            title: { display: true, text: "Volume alvo (mL)" },
+            title: { display: true, text: t("chart_target_volume_label", props.language) },
           },
         },
         elements: {
@@ -186,7 +187,7 @@ export function ShapeEditorView(props) {
       chart.destroy();
       chartInstanceRef.current = null;
     };
-  }, []);
+  }, [props.language]);
 
   async function playACB() {
     if (isPlayingRef.current) return;
@@ -236,23 +237,20 @@ export function ShapeEditorView(props) {
   return (
     <div className="main">
       <div className="holder">
-        <h2>Shape Editor</h2>
+        <h2>{t("shape_editor_title", props.language)}</h2>
         <p>
-          Clique no gráfico para adicionar um ponto, arraste para mover, dê duplo-clique
-          para remover. "Play" converte a curva em comandos de inflar/desinflar e toca no
-          periférico de verdade. Um trecho mais rápido do que a bomba consegue (3L/min no
-          máximo) é automaticamente empurrado no tempo até o ponto ficar fisicamente possível.
+          {t("shape_editor_instructions", props.language)}
         </p>
 
-        <button onClick={isPlaying ? stopACB : playACB}>{isPlaying ? "Stop" : "Play"}</button>
+        <button onClick={isPlaying ? stopACB : playACB}>{isPlaying ? t("stop_button", props.language) : t("play", props.language)}</button>
         <button onClick={clearACB} disabled={isPlaying}>
-          Limpar
+          {t("clear_button", props.language)}
         </button>
         <button onClick={extendTimeline} disabled={isPlaying}>
           +{TIMELINE_STEP_SECONDS}s
         </button>
         <label>
-          Volume máximo (mL)
+          {t("max_volume_label", props.language)}
           <input
             type="number"
             min="1"

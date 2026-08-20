@@ -1,4 +1,5 @@
 import "./style.css";
+import { t } from "./../i18n";
 
 export function NavView(props) {
     return (
@@ -27,7 +28,7 @@ export function NavView(props) {
                 ) : (
                     <div className="login-container">
                         <button className="login-button" onClick={props.onLoginClick}>
-                            Login
+                            {t("login", props.language)}
                         </button>
                     </div>
                 )}

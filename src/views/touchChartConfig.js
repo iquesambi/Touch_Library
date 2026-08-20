@@ -3,6 +3,8 @@
 // touch (touchVisualizationView). Keeping this in one place means the two
 // screens always render the exact same chart for the exact same data.
 
+import { t } from "../i18n";
+
 // Arduino streams pressure readings at 20Hz (every 50ms) while listening.
 export const PRESSURE_SAMPLE_INTERVAL_MS = 50;
 // Chart is drawn from every 3rd sample to stay readable; saved data keeps all 20Hz samples.
@@ -135,11 +137,11 @@ export function computePressurePoints(pressureSamples, t0, { requireFullBaseline
 }
 
 // Builds the Chart.js datasets + y/y1 scale config for the given view mode.
-export function buildChartUpdate(mode, volumePoints, pressurePoints) {
+export function buildChartUpdate(mode, volumePoints, pressurePoints, language) {
     const overlaying = mode === VIEW_MODES.BOTH;
 
     const volumeDataset = {
-        label: "Ar na câmara (mL)",
+        label: t("chart_air_volume_label", language),
         data: volumePoints,
         borderColor: overlaying ? "rgb(220, 30, 30)" : "rgba(0, 0, 0, 1)",
         backgroundColor: "rgba(128, 128, 128, 0.25)",
@@ -149,7 +151,7 @@ export function buildChartUpdate(mode, volumePoints, pressurePoints) {
         yAxisID: "y",
     };
     const pressureDataset = {
-        label: "Pressão interna (PSI)",
+        label: t("chart_pressure_label", language),
         data: pressurePoints,
         borderColor: "rgba(0, 0, 0, 1)",
         backgroundColor: "rgba(128, 128, 128, 0.25)",

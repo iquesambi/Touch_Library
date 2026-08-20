@@ -13,6 +13,7 @@ import {
   baseChartOptions,
 } from "./touchChartConfig";
 import "./style.css";
+import { t } from "../i18n";
 
 export function VisualizationView(props) {
   const lineChartRef = useRef(null);
@@ -68,7 +69,7 @@ export function VisualizationView(props) {
     const t0 = getRecordingStartMs(events, pressureSamples);
     const volumePoints = computeNetVolumeSeries(events, t0);
     const pressurePoints = computePressurePoints(pressureSamples, t0);
-    const { datasets, scaleY, scaleY1 } = buildChartUpdate(viewMode, volumePoints, pressurePoints);
+    const { datasets, scaleY, scaleY1 } = buildChartUpdate(viewMode, volumePoints, pressurePoints, props.language);
 
     const options = baseChartOptions();
     options.scales.y = scaleY;
@@ -85,7 +86,7 @@ export function VisualizationView(props) {
       lineChart.destroy();
       chartInstanceRef.current = null;
     };
-  }, [touchData, viewMode]);
+  }, [touchData, viewMode, props.language]);
 
   function handleViewModeChange(evt) {
     setViewMode(evt.target.value);
@@ -120,7 +121,7 @@ export function VisualizationView(props) {
         }
       }
     } else {
-      alert("You are not the author of this touch and cannot upload files.");
+      alert(t("not_author_upload_alert", props.language));
     }
   };
 
@@ -153,7 +154,7 @@ export function VisualizationView(props) {
           {
             label: "Scatter Dataset",
             data: [{ x: touchData.data[0].x, y: touchData.data[0].y }],
-            backgroundColor: "rgb(255, 99, 132)",
+            backgroundColor: "rgba(0, 0, 0, 0.75)",
           },
         ],
       };
@@ -200,11 +201,6 @@ export function VisualizationView(props) {
               const radius = Math.min(chartArea.width, chartArea.height) / 2.1;
 
               ctx.save();
-              ctx.beginPath();
-              ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-              ctx.lineWidth = 2;
-              ctx.strokeStyle = "rgba(0, 0, 0, 1)";
-              ctx.stroke();
 
               ctx.font = "16px Arial";
               ctx.fillStyle = "black";
@@ -213,17 +209,17 @@ export function VisualizationView(props) {
               ctx.save();
               ctx.translate(centerX - 5, chartArea.top + 70);
               ctx.rotate(-Math.PI / 2);
-              ctx.fillText("High Arousal", 0, 0);
+              ctx.fillText(t("high_arousal", props.language), 0, 0);
               ctx.restore();
 
               ctx.save();
               ctx.translate(centerX + 5, chartArea.bottom - 70);
               ctx.rotate(Math.PI / 2);
-              ctx.fillText("Low Arousal", 0, 0);
+              ctx.fillText(t("low_arousal", props.language), 0, 0);
               ctx.restore();
 
-              ctx.fillText("Pleasure", chartArea.right - 60, centerY - 5);
-              ctx.fillText("Displeasure", chartArea.left + 70, centerY - 5);
+              ctx.fillText(t("pleasure", props.language), chartArea.right - 60, centerY - 5);
+              ctx.fillText(t("displeasure", props.language), chartArea.left + 70, centerY - 5);
 
               ctx.restore();
             },
@@ -233,7 +229,7 @@ export function VisualizationView(props) {
 
       return () => scatterChart.destroy();
     }
-  }, [isChartVisible, touchData]);
+  }, [isChartVisible, touchData, props.language]);
 
   const handleNameEdit = () => {
     if (isAuthor) {
@@ -248,7 +244,7 @@ export function VisualizationView(props) {
       updateData();
       setIsEditingName(!isEditingName);
     } else {
-      alert("You are not the author of this touch and cannot edit the name.");
+      alert(t("not_author_edit_name_alert", props.language));
     }
   };
 
@@ -265,7 +261,7 @@ export function VisualizationView(props) {
       updateData();
       setIsEditingDescription(!isEditingDescription);
     } else {
-      alert("You are not the author of this touch and cannot edit the description.");
+      alert(t("not_author_edit_description_alert", props.language));
     }
   };
 
@@ -292,17 +288,17 @@ export function VisualizationView(props) {
           ) : touchData ? (
             touchData.name
           ) : (
-            "Loading..."
+            t("loading_label", props.language)
           )}
           {isAuthor && (
             <button onClick={handleNameEdit}>
-              {isEditingName ? "Save Name" : "Edit Name"}
+              {isEditingName ? t("save_name_button", props.language) : t("edit_name_button", props.language)}
             </button>
           )}
         </h2>
 
         <p>
-          <strong>Author:</strong> {touchData ? touchData.userName : "Loading..."}
+          <strong>{t("author_prefix", props.language)}</strong> {touchData ? touchData.userName : t("loading_label", props.language)}
         </p>
 
         <p>
@@ -314,21 +310,27 @@ export function VisualizationView(props) {
           ) : touchData ? (
             touchData.description
           ) : (
-            "Loading..."
+            t("loading_label", props.language)
           )}
           {isAuthor && (
             <button onClick={handleDescriptionEdit}>
-              {isEditingDescription ? "Save Description" : "Edit Description"}
+              {isEditingDescription ? t("save_description_button", props.language) : t("edit_description_button", props.language)}
             </button>
           )}
         </p>
 
-        <button>Play</button>
+        <button onClick={() => props.onPlay(touchData?.sequence)} disabled={!touchData?.sequence}>
+          {t("play", props.language)}
+        </button>
+
+        <a className="feedback-link" href={`#/feedback/${id}`}>
+          <button>{t("give_feedback_button", props.language)}</button>
+        </a>
 
         <select value={viewMode} onChange={handleViewModeChange}>
-          <option value={VIEW_MODES.FLOW}>Inflar e desinflar</option>
-          <option value={VIEW_MODES.PRESSURE}>Pressão interna</option>
-          <option value={VIEW_MODES.BOTH}>Ambos sobrepostos</option>
+          <option value={VIEW_MODES.FLOW}>{t("flow_mode", props.language)}</option>
+          <option value={VIEW_MODES.PRESSURE}>{t("pressure_mode", props.language)}</option>
+          <option value={VIEW_MODES.BOTH}>{t("both_mode", props.language)}</option>
         </select>
 
         <div className="chart">
@@ -336,8 +338,8 @@ export function VisualizationView(props) {
         </div>
 
         <div className="dropdown">
-          russell circumplex model
-          <button onClick={() => setIsChartVisible(!isChartVisible)}>Open</button>
+          {t("russell_model_label", props.language)}
+          <button onClick={() => setIsChartVisible(!isChartVisible)}>{t("open_button", props.language)}</button>
           {isChartVisible && (
             <div>
               <canvas ref={scatterChartRef} className="visualization__chart-two"></canvas>
@@ -346,8 +348,8 @@ export function VisualizationView(props) {
         </div>
 
         <div className="dropdown">
-          Media Gallery
-          <button onClick={() => setIsGalleryVisible(!isGalleryVisible)}>Open</button>
+          {t("media_gallery_label", props.language)}
+          <button onClick={() => setIsGalleryVisible(!isGalleryVisible)}>{t("open_button", props.language)}</button>
 
           {isGalleryVisible && (
             <>
@@ -357,7 +359,7 @@ export function VisualizationView(props) {
                   onDrop={handleDrop}
                   onDragOver={handleDragOver}
                 >
-                  Drag and drop files here or
+                  {t("drag_drop_files_label", props.language)}
                   <input
                     type="file"
                     multiple
@@ -381,7 +383,7 @@ export function VisualizationView(props) {
                     <img
                       key={index}
                       src={url}
-                      alt={`Media ${index}`}
+                      alt={`${t("media_alt_label", props.language)} ${index}`}
                       className="thumbnail"
                       onClick={() => handleImageClick(url)}
                     />
@@ -394,7 +396,7 @@ export function VisualizationView(props) {
 
         {selectedImage && (
           <div className="lightbox" onClick={closeImage}>
-            <img src={selectedImage} alt="Enlarged" className="enlarged-image" />
+            <img src={selectedImage} alt={t("enlarged_image_alt", props.language)} className="enlarged-image" />
           </div>
         )}
       </div>

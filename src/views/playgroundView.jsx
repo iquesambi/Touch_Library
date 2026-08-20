@@ -2,6 +2,7 @@
 
 import "./style.css";
 import { useEffect } from "react";
+import { t } from "../i18n";
 
 export function PlaygroundView(props) {
   useEffect(() => {
@@ -31,14 +32,14 @@ export function PlaygroundView(props) {
               onMouseDown={() => props.inflateDown[i]()}
               onMouseUp={() => props.inflateUp[i]()}
             >
-              Inflate
+              {t("inflate_button", props.language)}
             </button>
             <button
               className="playground-button"
               onMouseDown={() => props.deflateDown[i]()}
               onMouseUp={() => props.deflateUp[i]()}
             >
-              Deflate
+              {t("deflate_button", props.language)}
             </button>
           </div>
           <div className="pg-row-full">
@@ -57,7 +58,7 @@ export function PlaygroundView(props) {
               onMouseDown={() => props.fulldeflateDown[i]()}
               onMouseUp={() => props.fulldeflateUp[i]()}
             >
-              Fully deflate
+              {t("fully_deflate_button", props.language)}
             </button>
           </div>
         </div>

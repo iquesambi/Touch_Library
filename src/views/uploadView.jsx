@@ -12,6 +12,7 @@ import {
     baseChartOptions,
 } from "./touchChartConfig";
 import "./style.css";
+import { t } from "../i18n";
 
 export function UploadView(props) {
     const lineChartRef = useRef(null);
@@ -41,7 +42,7 @@ export function UploadView(props) {
         const volumePoints = computeNetVolumeSeries(events, t0, recordingRef.current ? nowMs : undefined);
         const pressurePoints = computePressurePoints(pressureSamples, t0, { requireFullBaseline: true });
 
-        const { datasets, scaleY, scaleY1 } = buildChartUpdate(mode, volumePoints, pressurePoints);
+        const { datasets, scaleY, scaleY1 } = buildChartUpdate(mode, volumePoints, pressurePoints, props.language);
         chart.data.datasets = datasets;
         chart.options.scales.y = scaleY;
         if (scaleY1) {
@@ -96,7 +97,7 @@ export function UploadView(props) {
 
     function saveACB() {
         if (!name || !description) {
-            alert("Please fill in the name and description.");
+            alert(t("fill_name_description_alert", props.language));
             return;
         }
 
@@ -143,7 +144,7 @@ export function UploadView(props) {
                 data: {
                     datasets: [
                         {
-                            label: "Ar na câmara (mL)",
+                            label: t("chart_air_volume_label", props.language),
                             data: [],
                             borderColor: "rgba(0, 0, 0, 1)",
                             backgroundColor: "rgba(128, 128, 128, 0.25)",
@@ -165,14 +166,14 @@ export function UploadView(props) {
                 chartInstanceRef.current = null;
             };
         }
-    }, []);
+    }, [props.language]);
 
     return (
         <div className="main">
             <div className="holder">
                 <input
                     type="text"
-                    placeholder="Touch name"
+                    placeholder={t("touch_name_placeholder", props.language)}
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                 />
@@ -180,19 +181,19 @@ export function UploadView(props) {
                     onClick={saveACB}
                     disabled={!name || !description || touches.length === 0}
                 >
-                    Save
+                    {t("save_button", props.language)}
                 </button>
                 <button onClick={toggleRecording}>
-                    {recording ? "Stop Recording" : "Start Recording"}
+                    {recording ? t("stop_recording", props.language) : t("start_recording", props.language)}
                 </button>
                 <button onClick={toggleReplay}>
-                    {replaying ? "Stop" : "Replay"}
+                    {replaying ? t("stop_button", props.language) : t("replay_button", props.language)}
                 </button>
 
                 <select value={viewMode} onChange={handleViewModeChange}>
-                    <option value={VIEW_MODES.FLOW}>Inflar e desinflar</option>
-                    <option value={VIEW_MODES.PRESSURE}>Pressão interna</option>
-                    <option value={VIEW_MODES.BOTH}>Ambos sobrepostos</option>
+                    <option value={VIEW_MODES.FLOW}>{t("flow_mode", props.language)}</option>
+                    <option value={VIEW_MODES.PRESSURE}>{t("pressure_mode", props.language)}</option>
+                    <option value={VIEW_MODES.BOTH}>{t("both_mode", props.language)}</option>
                 </select>
 
                 <div className="chart">
@@ -202,11 +203,11 @@ export function UploadView(props) {
               
 
                 <div className="bottom_form">
-                    <label>Author</label>
+                    <label>{t("author_label", props.language)}</label>
                     <input className="author" value={props.userName} readOnly />
                     <textarea
                         maxLength="200"
-                        placeholder="Add a short description here..."
+                        placeholder={t("description_placeholder", props.language)}
                         rows="5"
                         cols="33"
                         value={description}

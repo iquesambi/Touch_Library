@@ -153,11 +153,6 @@ export function TestView() {
                 Math.min(chartArea.width, chartArea.height) / 2.1;
 
               ctx.save();
-              ctx.beginPath();
-              ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-              ctx.lineWidth = 2;
-              ctx.strokeStyle = "rgba(0, 0, 0, 1)";
-              ctx.stroke();
 
               ctx.font = "16px Arial";
               ctx.fillStyle = "black";

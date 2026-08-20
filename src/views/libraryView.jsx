@@ -4,9 +4,13 @@ import { useNavigate } from "react-router-dom";
 import { db, storage } from "../../firebaseModel";
 import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
 import { ref, listAll, getDownloadURL } from "firebase/storage";
+import { CircumplexChart } from "./circumplexChart";
+import { t } from "../i18n";
 
 export function LibraryView(props) {
     const [library, setLibrary] = useState([]);
+    const [viewMode, setViewMode] = useState("cards"); // "cards" | "graph"
+    const [searchQuery, setSearchQuery] = useState("");
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -69,7 +73,7 @@ export function LibraryView(props) {
     const handleDelete = async (e, itemId) => {
         e.stopPropagation();
 
-        const confirmed = window.confirm("Are you sure you want to delete this file?");
+        const confirmed = window.confirm(t("confirm_delete", props.language));
         if (!confirmed) return;
 
         try {
@@ -83,10 +87,52 @@ export function LibraryView(props) {
 
     const formatId = (name) => name.toLowerCase().replace(/\s+/g, "-");
 
+    const filteredLibrary = library.filter((item) =>
+        (item.name || "").toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    const graphPoints = filteredLibrary.map((item) => ({
+        id: item.id,
+        name: item.name || t("unnamed_touch", props.language),
+        description: item.description || t("no_description", props.language),
+        x: item.data?.[0]?.x ?? 0,
+        y: item.data?.[0]?.y ?? 0,
+    }));
+
     return (
         <div className="library-view">
+            <div className="filter">
+                <input
+                    type="text"
+                    placeholder={t("search_by_name", props.language)}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                <div>
+                    <button
+                        onClick={() => setViewMode("cards")}
+                        disabled={viewMode === "cards"}
+                    >
+                        {t("view_cards", props.language)}
+                    </button>
+                    <button
+                        onClick={() => setViewMode("graph")}
+                        disabled={viewMode === "graph"}
+                    >
+                        {t("view_graph", props.language)}
+                    </button>
+                </div>
+            </div>
+
+            {viewMode === "graph" ? (
+                <CircumplexChart
+                    points={graphPoints}
+                    onPointClick={(point) => navigate(`/visualization/${point.id}`)}
+                    language={props.language}
+                />
+            ) : (
             <div className="cards-container">
-                {library.map((item) => {
+                {filteredLibrary.map((item) => {
                     const isAuthor = item.userName === props.userName;
                     const cardImageStyle = {
                         backgroundImage: item.imageUrl ? `url(${item.imageUrl})` : 'none',
@@ -102,15 +148,15 @@ export function LibraryView(props) {
                             <div className="card-content">
                                 <h6>{item.name}</h6>
                                 <p>{item.description}</p>
-                                <p className="author">Author: {item.userName}</p>
-                                <p className="created-on">Created on {formatDate(item.createdAt)}</p>
+                                <p className="author">{t("author_prefix", props.language)} {item.userName}</p>
+                                <p className="created-on">{t("created_on_prefix", props.language)} {formatDate(item.createdAt)}</p>
                             </div>
                             <div className="card-buttons">
-                                <button onClick={(e) => handlePlay(e, item.sequence)}>Play</button>
+                                <button onClick={(e) => handlePlay(e, item.sequence)}>{t("play", props.language)}</button>
 
                                 {isAuthor && (
                                     <button className="delete-button" onClick={(e) => handleDelete(e, item.id)}>
-                                        Delete
+                                        {t("delete", props.language)}
                                     </button>
                                 )}
                             </div>
@@ -118,6 +164,7 @@ export function LibraryView(props) {
                     );
                 })}
             </div>
+            )}
         </div>
     );
 }

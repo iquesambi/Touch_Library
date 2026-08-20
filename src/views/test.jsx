@@ -23,13 +23,6 @@ export function ScatterChartView() {
     const centerY = height / 2;
     const radius = Math.min(width, height) / 2.1;
 
-    // Draw circular background
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = "rgba(0, 0, 0, 1)";
-    ctx.stroke();
-
     // Draw axes
     ctx.beginPath();
     ctx.moveTo(20, centerY);

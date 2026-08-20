@@ -13,6 +13,7 @@
     "dependencies": {
         "chart.js": "^4.4.5",
         "chartjs-plugin-dragdata": "^2.3.1",
+        "chartjs-plugin-zoom": "^2.2.0",
         "firebase": "^9.23.0",
         "konva": "^9.3.20",
         "mobx": "^6.8.0",

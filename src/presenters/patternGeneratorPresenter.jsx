@@ -106,6 +106,7 @@ const BasicVestPresenter = observer(function (props) {
   selectVelocity = {velocityACB}
   play= {play}
   playSequence = {playSequence}
+  language={props.model.language}
 
       // Pass state values to the view
    //   deliberatenessValue={deliberateness}

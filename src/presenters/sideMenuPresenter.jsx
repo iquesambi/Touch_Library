@@ -7,7 +7,16 @@ import { model } from "../../model";
 
 const SideMenu = observer(function (props) {
     return (
-        <SideMenuView login={loginACB} close={closeACB} connect={connectACB} midiAuth={props.model.midiAuth}/>
+        <SideMenuView
+            login={loginACB}
+            close={closeACB}
+            connect={connectACB}
+            midiAuth={props.model.midiAuth}
+            midiInputName={props.model.selectedInput?.name}
+            midiConnected={props.model.selectedInput?.state === "connected"}
+            language={props.model.language}
+            onLanguageChange={(lang) => props.model.setLanguage(lang)}
+        />
     );
 
     function loginACB() {
@@ -26,7 +35,7 @@ const SideMenu = observer(function (props) {
     }
 
     function connectACB(){
-        props.model.connectToSerialAndMIDI()
+        props.model.connectToMIDI()
     }
 });
 

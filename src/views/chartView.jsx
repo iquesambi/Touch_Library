@@ -3,8 +3,9 @@ import { Chart } from "chart.js/auto";
 import { db } from "../../firebaseModel"; // Import your Firestore connection
 import { doc, setDoc, getDoc } from "firebase/firestore"; // Import getDoc
 import "./style.css";
+import { t } from "../i18n";
 
-export function ScatterChartView() {
+export function ScatterChartView(props) {
   const chartRef = useRef(null);
   const [scatterData, setScatterData] = useState([{ x: 0, y: 0 }]);
   const [chartName, setChartName] = useState(""); // State to store the chart name
@@ -30,7 +31,7 @@ export function ScatterChartView() {
           {
             label: "Scatter Dataset",
             data: scatterData,
-            backgroundColor: "rgb(255, 99, 132)",
+            backgroundColor: "rgba(0, 0, 0, 0.75)",
           },
         ],
       };
@@ -110,11 +111,6 @@ export function ScatterChartView() {
               const radius = Math.min(chartArea.width, chartArea.height) / 2.1;
 
               ctx.save();
-              ctx.beginPath();
-              ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-              ctx.lineWidth = 2;
-              ctx.strokeStyle = "rgba(0, 0, 0, 1)";
-              ctx.stroke();
 
               ctx.font = "16px Arial";
               ctx.fillStyle = "black";
@@ -123,17 +119,17 @@ export function ScatterChartView() {
               ctx.save();
               ctx.translate(centerX - 5, chartArea.top + 70);
               ctx.rotate(-Math.PI / 2);
-              ctx.fillText("High Arousal", 0, 0);
+              ctx.fillText(t("high_arousal", props.language), 0, 0);
               ctx.restore();
 
               ctx.save();
               ctx.translate(centerX + 5, chartArea.bottom - 70);
               ctx.rotate(Math.PI / 2);
-              ctx.fillText("Low Arousal", 0, 0);
+              ctx.fillText(t("low_arousal", props.language), 0, 0);
               ctx.restore();
 
-              ctx.fillText("Pleasure", chartArea.right - 60, centerY - 5);
-              ctx.fillText("Displeasure", chartArea.left + 70, centerY - 5);
+              ctx.fillText(t("pleasure", props.language), chartArea.right - 60, centerY - 5);
+              ctx.fillText(t("displeasure", props.language), chartArea.left + 70, centerY - 5);
 
               ctx.restore();
             },
@@ -147,7 +143,7 @@ export function ScatterChartView() {
         circularChart.destroy();
       };
     }
-  }, [scatterData]);
+  }, [scatterData, props.language]);
 
   const saveDataToFirestore = async (name, data, sensation) => {
     try {
@@ -194,12 +190,12 @@ export function ScatterChartView() {
 
   return (
     <div className="chart-container">
-      <div style={{ position: 'relative' }}>
+      <div style={{ position: 'relative', width: '500px', height: '500px', maxWidth: '90vw', maxHeight: '90vw' }}>
         <canvas ref={chartRef} className="circular-chart"></canvas>
-       
+
       </div>
       <textarea // Use textarea for larger text input
-        placeholder="Describe your felt sensation"
+        placeholder={t("felt_sensation_placeholder", props.language)}
         value={feltSensation}
         onChange={(e) => setFeltSensation(e.target.value)}
         className="sensation-input"
@@ -210,9 +206,9 @@ export function ScatterChartView() {
 <button
           onClick={handleSaveClick}
           className="save-button"
-       
+
         >
-          Save
+          {t("save_button", props.language)}
         </button>
 
     </div>
