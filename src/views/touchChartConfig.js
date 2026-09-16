@@ -22,6 +22,16 @@ export const PRESSURE_DEADBAND_PSI = 0.03;
 export const MAX_FLOW_ML_PER_MIN = 3000;
 export const MAX_VELOCITY = 127;
 
+// Chart palette — mirrors --tl-ink / --tl-ink-soft in design.css. Chart.js
+// draws to a canvas, so it can't read the CSS custom properties directly.
+export const INK = "rgba(20, 20, 20, 1)";
+export const INK_FILL = "rgba(20, 20, 20, 0.08)";
+export const INK_SOFT = "#55534f";
+
+// MIDI notes the Arduino maps to its inflate/deflate buttons.
+export const INFLATE_NOTE = 60; // middleC
+export const DEFLATE_NOTE = 67; // middleG
+
 export const VIEW_MODES = {
     FLOW: "flow",
     PRESSURE: "pressure",
@@ -140,11 +150,13 @@ export function computePressurePoints(pressureSamples, t0, { requireFullBaseline
 export function buildChartUpdate(mode, volumePoints, pressurePoints, language) {
     const overlaying = mode === VIEW_MODES.BOTH;
 
+    // Monochrome per the redesign: the two series are told apart by a dash
+    // pattern rather than by colour.
     const volumeDataset = {
         label: t("chart_air_volume_label", language),
         data: volumePoints,
-        borderColor: overlaying ? "rgb(220, 30, 30)" : "rgba(0, 0, 0, 1)",
-        backgroundColor: "rgba(128, 128, 128, 0.25)",
+        borderColor: INK,
+        backgroundColor: INK_FILL,
         fill: mode === VIEW_MODES.FLOW,
         borderWidth: 2,
         pointRadius: 0,
@@ -153,8 +165,8 @@ export function buildChartUpdate(mode, volumePoints, pressurePoints, language) {
     const pressureDataset = {
         label: t("chart_pressure_label", language),
         data: pressurePoints,
-        borderColor: "rgba(0, 0, 0, 1)",
-        backgroundColor: "rgba(128, 128, 128, 0.25)",
+        borderColor: INK,
+        backgroundColor: INK_FILL,
         fill: mode === VIEW_MODES.PRESSURE,
         borderWidth: 2,
         borderDash: overlaying ? [5, 3] : undefined,
@@ -242,6 +254,49 @@ export function curveToActions(points) {
     return actions;
 }
 
+// Turns a hand-drawn curve into the same event shape the kit records, so a
+// drawn entry is indistinguishable downstream: playbackSequence(), the
+// detail chart, the library Play button and Test a touch all keep working
+// without knowing how the touch was authored.
+//
+// The raw curve is still stored alongside it (see createEntryView) — this is
+// the derived, playable form, not the source of truth for re-editing.
+export function curveToSequence(points, startMs = Date.now()) {
+    // The editor already snaps impossible slopes, but re-running it here is
+    // idempotent and keeps a raw curve from silently producing a playback that
+    // never reaches the volume that was drawn (the pump saturates instead).
+    const actions = curveToActions(enforcePhysicalLimits(points));
+    const events = [];
+    let now = startMs;
+    let lastEventAt = startMs;
+
+    function push(button, type, velocity, note) {
+        events.push({
+            button,
+            type,
+            pot: velocity,
+            singleReadingPressure: null, // Firestore rejects undefined
+            note,
+            timestamp: now,
+            interval: now - lastEventAt, // playbackSequence() waits on this
+        });
+        lastEventAt = now;
+    }
+
+    for (const action of actions) {
+        if (action.type === "hold") {
+            now += action.durationMs; // nothing to emit; the gap is the hold
+            continue;
+        }
+        const note = action.type === "inflate" ? INFLATE_NOTE : DEFLATE_NOTE;
+        push(action.type, "press", action.velocity, note);
+        now += action.durationMs;
+        push(action.type, "release", action.velocity, note);
+    }
+
+    return events;
+}
+
 // Base Chart.js options shared by both screens: hidden axes/grid (the thick
 // border comes from the surrounding .chart div's CSS), values shown only via
 // hover tooltip, and full auto-fit scaling so the whole curve is always visible.
@@ -253,7 +308,15 @@ export function baseChartOptions() {
         parsing: false,
         layout: { padding: 0 },
         interaction: { mode: "index", intersect: false },
-        plugins: { legend: { display: true } },
+        // The redesign's chart block is a bare waveform: no axes, no legend.
+        // Callers turn the legend back on for the "both" mode, where the two
+        // overlaid series do need to be told apart.
+        plugins: {
+            legend: {
+                display: false,
+                labels: { color: INK_SOFT, boxHeight: 1, font: { size: 12 } },
+            },
+        },
         scales: {
             x: { type: "linear", display: false, min: 0 },
             y: { display: false, beginAtZero: true },

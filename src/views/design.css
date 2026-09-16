@@ -1,0 +1,1506 @@
+/* ==========================================================================
+   Touch Library — design system (monochrome redesign)
+   Source of truth: design_handoff_touch_library_redesign.
+
+   Everything here is namespaced `tl-` and loaded AFTER style.css (see the
+   import at the bottom of src/index.jsx), so the legacy global rules in
+   style.css keep working untouched for the screens that haven't been
+   redesigned yet (/feedback, /playground, /pattern, /chart) while every
+   redesigned screen opts in through these classes.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   FONTS — single swap point.
+   Loaded from Adobe Fonts kit uyh7jvw via the <link> in index.html.
+
+   Adobe's family slugs are NOT the marketing names: Bernina Sans ships as
+   "jaf-bernina-sans" (JAF = Just Another Foundry). The kit also carries the
+   -narrow / -condensed / -comp widths and the Bernino Sans (slab) siblings;
+   the design uses the base width only.
+
+   Weights available in the kit: 400 and 700 (plus italics) for every family.
+   The design asks for Plau 800 on display text and 600 on some UI text; CSS
+   font matching resolves both to 700, which is the intended visual weight
+   here. Those declarations are left as designed so that adding real 600/800
+   cuts to the kit later takes effect with no code change.
+   -------------------------------------------------------------------------- */
+
+:root {
+    /* Palette — warm-neutral grayscale, no colour accents. */
+    --tl-bg: #fbfbfa;
+    --tl-ink: #141414;
+    --tl-ink-soft: #55534f;
+    --tl-muted: #a4a19b;
+    --tl-line: rgba(20, 20, 18, 0.16);
+
+    /* Typography */
+    --tl-font-display: "plau", "Helvetica Neue", Arial, sans-serif;
+    --tl-font-body: "jaf-bernina-sans", "Helvetica Neue", Arial, sans-serif;
+
+    /* Corner style — prototype default: "rounded". */
+    --tl-radius: 10px;
+    --tl-radius-sm: 6px;
+
+    /* Density — prototype default: "comfortable". */
+    --tl-section-gap: 30px;
+    --tl-card-gap: 24px;
+    --tl-page-pad-y: 40px;
+    --tl-page-pad-x: 32px;
+    /* The handoff's 1240px left a lot of unused margin on wide screens; this
+       gives the content roughly 15% more room. */
+    --tl-page-max: 1440px;
+
+    /* Side menu theme — prototype default: "dark". */
+    --tl-menu-bg: #141414;
+    --tl-menu-fg: #fbfbfa;
+}
+
+/* Ribbed placeholder textures — a nod to the device's 3D-printed fluted base.
+   Used wherever a real photo from Firebase Storage is missing. */
+.tl-tex-0 { background: repeating-linear-gradient(90deg, #f0efec, #f0efec 9px, #cfccc5 9px, #cfccc5 11px); }
+.tl-tex-1 { background: repeating-linear-gradient(90deg, #eae8e3, #eae8e3 14px, #c7c4bd 14px, #c7c4bd 17px); }
+.tl-tex-2 { background: repeating-linear-gradient(90deg, #f2f1ee, #f2f1ee 7px, #d3d0c9 7px, #d3d0c9 9px); }
+
+/* --------------------------------------------------------------------------
+   Base
+   -------------------------------------------------------------------------- */
+
+body.tl-body {
+    margin: 0;
+    background: var(--tl-bg);
+    font-family: var(--tl-font-body);
+    color: var(--tl-ink);
+}
+
+body.tl-body ::selection {
+    background: var(--tl-ink);
+    color: var(--tl-bg);
+}
+
+.tl-app {
+    position: relative;
+    min-height: 100vh;
+    background: var(--tl-bg);
+    font-family: var(--tl-font-body);
+    color: var(--tl-ink);
+}
+
+.tl-app *,
+.tl-app *::before,
+.tl-app *::after { box-sizing: border-box; }
+
+/* Form controls don't inherit the page font by default. Any component rule
+   that sets its own font-family must be scoped under .tl-app to outrank this
+   (see .tl-app .tl-nav__wordmark). */
+.tl-app input,
+.tl-app textarea,
+.tl-app select,
+.tl-app button { font-family: inherit; }
+
+@keyframes tl-fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+/* --------------------------------------------------------------------------
+   Top nav
+   -------------------------------------------------------------------------- */
+
+.tl-nav {
+    position: relative;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 22px var(--tl-page-pad-x);
+    border-bottom: 1px solid var(--tl-line);
+    background: var(--tl-bg);
+    /* style.css pins `nav` to 20% width and fixed positioning for the legacy
+       side menu — neutralised here so the redesigned bar spans the page. */
+    width: 100%;
+}
+
+.tl-nav__burger {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    border: none;
+    background: none;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+}
+
+.tl-nav__burger span {
+    display: block;
+    width: 22px;
+    height: 2px;
+    background: var(--tl-ink);
+}
+
+/* Scoped under .tl-app so it outranks the `.tl-app button { font-family:
+   inherit }` reset above — without that, the wordmark inherits the body face
+   instead of the display one. */
+.tl-app .tl-nav__wordmark {
+    border: none;
+    background: none;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    font-family: var(--tl-font-display);
+    font-weight: 800;
+    font-size: 36px;
+    line-height: 1;
+    letter-spacing: -0.045em;
+    color: var(--tl-ink);
+    white-space: nowrap;
+}
+
+/* Balances the hamburger on the left so the wordmark stays centred. */
+.tl-nav__spacer {
+    width: 40px;
+    flex-shrink: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Side menu
+   -------------------------------------------------------------------------- */
+
+.tl-menu-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(20, 20, 18, 0.35);
+    z-index: 40;
+    animation: tl-fade-in 0.15s ease both;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+}
+
+.tl-menu {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 290px;
+    max-width: 85vw;
+    background: var(--tl-menu-bg);
+    color: var(--tl-menu-fg);
+    z-index: 41;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    display: flex;
+    flex-direction: column;
+    padding: 26px;
+    gap: 28px;
+    /* style.css sets `nav { width: 20%; position: fixed }` — restated above. */
+}
+
+.tl-menu.tl-menu--open { transform: translateX(0); }
+
+.tl-menu__header {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.tl-menu__close {
+    align-self: flex-end;
+    border: none;
+    background: none;
+    color: var(--tl-menu-fg);
+    font-size: 20px;
+    line-height: 1;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+}
+
+.tl-menu__links {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.tl-menu__link {
+    text-align: left;
+    border: none;
+    background: none;
+    color: var(--tl-menu-fg);
+    font-size: 20px;
+    font-weight: 600;
+    font-family: var(--tl-font-body);
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+    opacity: 0.55;
+    text-decoration: none;
+    display: block;
+}
+
+.tl-menu__link.is-current { opacity: 1; }
+
+.tl-menu__footer {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.tl-menu__btn {
+    padding: 14px 18px;
+    border-radius: var(--tl-radius);
+    border: 1px solid var(--tl-menu-fg);
+    background: none;
+    color: var(--tl-menu-fg);
+    font-size: 14px;
+    cursor: pointer;
+    margin: 0;
+    text-align: center;
+}
+
+.tl-menu__btn--solid {
+    border: none;
+    background: var(--tl-menu-fg);
+    color: var(--tl-menu-bg);
+}
+
+.tl-menu__btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.tl-menu__lang {
+    font-size: 13px;
+    color: var(--tl-menu-fg);
+    opacity: 0.7;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.tl-menu__lang select {
+    background: none;
+    border: 1px solid var(--tl-menu-fg);
+    color: var(--tl-menu-fg);
+    border-radius: 6px;
+    padding: 4px 6px;
+    font-size: 13px;
+}
+
+.tl-menu__lang select option { color: #141414; }
+
+.tl-menu__midi {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--tl-menu-fg);
+    opacity: 0.7;
+}
+
+.tl-menu__midi-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: var(--tl-menu-fg);
+}
+
+.tl-menu__midi-dot--off { opacity: 0.35; }
+
+/* Identity chip — signed in, this is the avatar + name with a "Log out"
+   tooltip on hover. Signed out, the slot renders a plain Login button
+   instead (see sideMenuView). */
+.tl-app .tl-menu__identity {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    color: var(--tl-menu-fg);
+    text-align: left;
+}
+
+.tl-app .tl-menu__identity:hover { opacity: 0.85; }
+
+.tl-menu__avatar {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--tl-menu-fg);
+    color: var(--tl-menu-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.tl-menu__identity-name {
+    font-size: 14px;
+    color: var(--tl-menu-fg);
+}
+
+.tl-menu__tooltip {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    margin-bottom: 8px;
+    padding: 8px 14px;
+    border-radius: var(--tl-radius-sm);
+    background: var(--tl-menu-fg);
+    color: var(--tl-menu-bg);
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+}
+
+.tl-app .tl-menu__identity:hover .tl-menu__tooltip,
+.tl-app .tl-menu__identity:focus-visible .tl-menu__tooltip { opacity: 1; }
+
+/* --------------------------------------------------------------------------
+   Page shell
+   -------------------------------------------------------------------------- */
+
+.tl-main {
+    max-width: var(--tl-page-max);
+    margin: 0 auto;
+    padding: var(--tl-page-pad-y) var(--tl-page-pad-x);
+}
+
+.tl-page {
+    display: flex;
+    flex-direction: column;
+    gap: var(--tl-section-gap);
+}
+
+.tl-h1 {
+    margin: 0;
+    font-family: var(--tl-font-display);
+    font-size: 38px;
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    color: var(--tl-ink);
+}
+
+.tl-lead {
+    margin: 0;
+    color: var(--tl-ink-soft);
+    font-size: 15px;
+    font-weight: 400;
+    max-width: 760px;
+    line-height: 1.6;
+    font-family: var(--tl-font-body);
+}
+
+/* Vertical rhythm inside a step or a panel, matching the page's own gap. */
+.tl-stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--tl-section-gap);
+}
+
+.tl-lead--narrow { max-width: 640px; }
+
+.tl-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.tl-row--between {
+    justify-content: space-between;
+    gap: 16px;
+}
+
+/* --------------------------------------------------------------------------
+   Buttons — solid black fill for primary, 1px black outline for secondary,
+   muted grey for disabled.
+   -------------------------------------------------------------------------- */
+
+.tl-app .tl-btn {
+    padding: 14px 22px;
+    border-radius: var(--tl-radius);
+    border: none;
+    background: var(--tl-ink);
+    color: var(--tl-bg);
+    font-family: var(--tl-font-body);
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.2;
+    cursor: pointer;
+    margin: 0;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.tl-app .tl-btn--outline {
+    border: 1px solid var(--tl-ink);
+    background: none;
+    color: var(--tl-ink);
+}
+
+.tl-app .tl-btn--sm { padding: 12px 22px; }
+
+.tl-app .tl-btn--text {
+    border: none;
+    background: none;
+    color: var(--tl-ink);
+    font-size: 15px;
+    font-weight: 600;
+    padding: 0;
+}
+
+.tl-app .tl-btn--back {
+    align-self: flex-start;
+    border: none;
+    background: none;
+    color: var(--tl-ink-soft);
+    font-size: 14px;
+    font-weight: 400;
+    padding: 0;
+}
+
+.tl-app .tl-btn:disabled {
+    background: var(--tl-muted);
+    color: var(--tl-bg);
+    border-color: var(--tl-muted);
+    cursor: not-allowed;
+}
+
+.tl-app .tl-btn--outline:disabled {
+    background: none;
+    color: var(--tl-muted);
+    border: 1px solid var(--tl-muted);
+}
+
+.tl-app .tl-btn--text:disabled,
+.tl-app .tl-btn--back:disabled {
+    background: none;
+    color: var(--tl-muted);
+    cursor: not-allowed;
+}
+
+/* --------------------------------------------------------------------------
+   Form controls
+   -------------------------------------------------------------------------- */
+
+/* 14px is the design's size for every field; the library's search input is
+   the one exception at 15px. */
+.tl-app .tl-input,
+.tl-app .tl-textarea,
+.tl-app .tl-select {
+    width: 100%;
+    padding: 14px 18px;
+    border: 1px solid var(--tl-line);
+    border-radius: var(--tl-radius);
+    background: var(--tl-bg);
+    font-family: var(--tl-font-body);
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--tl-ink);
+    outline: none;
+    margin: 0;
+}
+
+/* Tighter fields that sit under a label (touch name, shape name). */
+.tl-app .tl-input--sm {
+    padding: 12px 14px;
+    border-radius: var(--tl-radius-sm);
+}
+
+.tl-app .tl-textarea {
+    padding: 14px;
+    resize: vertical;
+    line-height: 1.5;
+}
+
+.tl-app .tl-input:focus,
+.tl-app .tl-textarea:focus,
+.tl-app .tl-select:focus { border-color: var(--tl-ink); }
+
+.tl-app .tl-input::placeholder,
+.tl-app .tl-textarea::placeholder { color: var(--tl-muted); }
+
+.tl-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--tl-ink-soft);
+    font-family: var(--tl-font-body);
+}
+
+.tl-field {
+    display: flex;
+    flex-direction: column;
+}
+
+.tl-field > .tl-input,
+.tl-field > .tl-textarea { margin-top: 6px; }
+
+/* Plain (non-boxed) author line — the author is system-provided, so it reads
+   as text rather than an editable input. */
+.tl-static-field {
+    font-size: 13px;
+    color: var(--tl-ink-soft);
+}
+
+.tl-static-field strong {
+    color: var(--tl-ink);
+    font-weight: 600;
+}
+
+/* Segmented Cards / Graph toggle */
+.tl-segmented {
+    display: flex;
+    border: 1px solid var(--tl-ink);
+    border-radius: var(--tl-radius);
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.tl-app .tl-segmented__btn {
+    padding: 14px 22px;
+    border: none;
+    border-radius: 0;
+    margin: 0;
+    cursor: pointer;
+    font-family: var(--tl-font-body);
+    font-size: 14px;
+    font-weight: 600;
+    background: var(--tl-bg);
+    color: var(--tl-ink);
+}
+
+.tl-app .tl-segmented__btn + .tl-segmented__btn { border-left: 1px solid var(--tl-ink); }
+
+/* Source toggle on Create an entry step 1 — pill shaped and smaller than the
+   library's Cards/Graph switch. */
+.tl-segmented--pill {
+    border-radius: 999px;
+    align-self: flex-start;
+}
+
+.tl-app .tl-segmented__btn--sm {
+    padding: 10px 20px;
+    font-size: 13px;
+}
+
+.tl-app .tl-segmented__btn.is-active {
+    background: var(--tl-ink);
+    color: var(--tl-bg);
+}
+
+/* --------------------------------------------------------------------------
+   Library — filter bar + cards
+   -------------------------------------------------------------------------- */
+
+.tl-filterbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.tl-app .tl-filterbar__search {
+    flex: 1;
+    min-width: 220px;
+    max-width: 420px;
+    width: auto;
+    font-size: 15px;
+}
+
+.tl-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: var(--tl-card-gap);
+}
+
+.tl-app .tl-card {
+    border: 1px solid var(--tl-line);
+    border-radius: var(--tl-radius);
+    overflow: hidden;
+    background: var(--tl-bg);
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+    /* style.css's .card sets width/margins/shadow — all restated here. */
+    width: auto;
+    margin: 0;
+    box-shadow: none;
+    text-align: left;
+    padding: 0;
+    color: inherit;
+    font: inherit;
+}
+
+.tl-card__image {
+    position: relative;
+    height: 220px;
+    display: flex;
+    align-items: flex-end;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+}
+
+.tl-app .tl-card__title {
+    margin: 0;
+    padding: 16px;
+    width: 100%;
+    font-family: var(--tl-font-display);
+    font-size: 32px;
+    line-height: 1.02;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--tl-bg);
+    background: linear-gradient(to top, rgba(20, 20, 18, 0.82), rgba(20, 20, 18, 0));
+    word-break: break-word;
+}
+
+.tl-card__body {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+}
+
+.tl-app .tl-card__desc {
+    margin: 0;
+    font-family: var(--tl-font-body);
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--tl-ink-soft);
+    line-height: 1.5;
+}
+
+.tl-app .tl-card__meta {
+    margin: 0;
+    font-family: var(--tl-font-body);
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--tl-muted);
+    line-height: 1.5;
+}
+
+.tl-app .tl-card__meta--first { margin-top: 6px; }
+
+.tl-card__actions {
+    display: flex;
+    gap: 10px;
+    margin-top: auto;
+    padding-top: 14px;
+}
+
+.tl-app .tl-card__play {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: var(--tl-radius-sm);
+    background: var(--tl-ink);
+    color: var(--tl-bg);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    margin: 0;
+}
+
+.tl-app .tl-card__delete {
+    padding: 12px 16px;
+    border: 1px solid var(--tl-line);
+    border-radius: var(--tl-radius-sm);
+    background: none;
+    color: var(--tl-ink-soft);
+    font-size: 13px;
+    font-weight: 400;
+    cursor: pointer;
+    margin: 0;
+}
+
+@keyframes tl-spin { to { transform: rotate(360deg); } }
+
+.tl-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 20px;
+}
+
+.tl-spinner {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid var(--tl-line);
+    border-top-color: var(--tl-ink);
+    animation: tl-spin 0.7s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tl-spinner { animation-duration: 2.4s; }
+}
+
+.tl-empty {
+    padding: 60px 20px;
+    text-align: center;
+    color: var(--tl-muted);
+    font-size: 15px;
+    border: 1px solid var(--tl-line);
+    border-radius: var(--tl-radius);
+}
+
+/* --------------------------------------------------------------------------
+   Circumplex plot (DOM-based — see circumplexPlot.jsx)
+   -------------------------------------------------------------------------- */
+
+.tl-plot {
+    position: relative;
+    border: 1px solid var(--tl-line);
+    border-radius: var(--tl-radius);
+    background: var(--tl-bg);
+    overflow: hidden;
+    touch-action: none;
+}
+
+/* Always square and centred, so the two axes read as equal length at any
+   window width. */
+.tl-plot--library {
+    width: min(720px, 100%);
+    aspect-ratio: 1 / 1;
+    margin: 0 auto;
+    cursor: grab;
+    /* Dragging the background pans the plot, so text must not be selected
+       out from under the gesture. */
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.tl-plot--library.is-panning { cursor: grabbing; }
+
+/* Square aspect ratio matters here: X and Y must read as equal-length axes. */
+.tl-plot--square {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border: none;
+    border-radius: 0;
+}
+
+.tl-plot--test {
+    height: 380px;
+    max-width: 500px;
+    width: 100%;
+}
+
+/* Create an entry, step 2 — click-to-place mood square. Its axes stop short
+   of the border rather than running edge to edge. */
+.tl-plot--mood {
+    width: min(420px, 100%);
+    aspect-ratio: 1 / 1;
+    flex-shrink: 0;
+}
+
+.tl-plot--mood .tl-plot__axis-v { top: 12%; bottom: 12%; }
+.tl-plot--mood .tl-plot__axis-h { left: 12%; right: 12%; }
+
+.tl-plot--pickable { cursor: crosshair; }
+
+.tl-plot__pan {
+    position: absolute;
+    inset: 0;
+    transform-origin: center;
+}
+
+.tl-plot__axis-v {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--tl-ink);
+}
+
+.tl-plot__axis-h {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: var(--tl-ink);
+}
+
+/* Axis labels sit beside their line, never on top of it. */
+.tl-plot__label {
+    position: absolute;
+    font-size: 13px;
+    color: var(--tl-ink-soft);
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+.tl-plot__label--arousal {
+    writing-mode: vertical-rl;
+    left: calc(50% + 16px);
+}
+
+.tl-plot__label--high { top: 9px; }
+.tl-plot__label--low { bottom: 9px; }
+.tl-plot__label--displeasure { left: 16px; top: calc(50% - 22px); }
+.tl-plot__label--pleasure { right: 16px; top: calc(50% - 22px); }
+
+.tl-plot--square .tl-plot__label { font-size: 10px; }
+.tl-plot--square .tl-plot__label--arousal { left: calc(50% + 14px); }
+.tl-plot--square .tl-plot__label--high { top: 4px; }
+.tl-plot--square .tl-plot__label--low { bottom: 4px; }
+.tl-plot--square .tl-plot__label--displeasure { left: 4px; top: calc(50% - 16px); }
+.tl-plot--square .tl-plot__label--pleasure { right: 4px; top: calc(50% - 16px); }
+
+.tl-plot--mood .tl-plot__label { font-size: 12px; }
+.tl-plot--mood .tl-plot__label--high { top: 8px; }
+.tl-plot--mood .tl-plot__label--low { bottom: 8px; }
+.tl-plot--mood .tl-plot__label--displeasure { left: 8px; top: calc(50% - 20px); }
+.tl-plot--mood .tl-plot__label--pleasure { right: 8px; top: calc(50% - 20px); }
+
+/* Test a touch labels only the valence axis, from the box's top corners. */
+.tl-plot--test .tl-plot__label { font-size: 12px; }
+.tl-plot--test .tl-plot__label--displeasure { left: 16px; top: 14px; }
+.tl-plot--test .tl-plot__label--pleasure { right: 16px; top: 14px; }
+
+.tl-plot__dot {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--tl-ink);
+    transform: translate(-50%, -50%);
+    cursor: pointer;
+    border: none;
+    padding: 0;
+    margin: 0;
+}
+
+.tl-plot__dot--square,
+.tl-plot__dot--test { cursor: default; }
+
+.tl-plot__dot--mood {
+    width: 7px;
+    height: 7px;
+    cursor: default;
+}
+
+.tl-plot__hovercard {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    right: 20px;
+    max-width: 360px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    background: var(--tl-ink);
+    color: var(--tl-bg);
+    padding: 14px;
+    border-radius: var(--tl-radius-sm);
+    pointer-events: none;
+    z-index: 3;
+}
+
+.tl-plot__hovercard-thumb {
+    width: 52px;
+    height: 52px;
+    flex-shrink: 0;
+    border-radius: 6px;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+}
+
+.tl-plot__hovercard-name {
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 4px;
+}
+
+.tl-plot__hovercard-desc {
+    font-size: 13px;
+    opacity: 0.8;
+    line-height: 1.4;
+}
+
+.tl-plot__zoom {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 3;
+}
+
+.tl-app .tl-plot__zoom button {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    border: none;
+    background: var(--tl-ink);
+    color: var(--tl-bg);
+    font-size: 22px;
+    font-weight: 800;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+    margin: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Merged chart block — one bordered container holding the chart plus, where
+   the screen calls for it, a right-hand side panel, plus the view-mode select
+   tucked into the top-left corner.
+   -------------------------------------------------------------------------- */
+
+.tl-chartblock {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+    border: 1px solid var(--tl-line);
+    border-radius: var(--tl-radius);
+    overflow: hidden;
+    background: var(--tl-bg);
+}
+
+.tl-app .tl-chartblock__select {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    z-index: 2;
+    width: auto;
+    padding: 6px 10px;
+    border: 1px solid var(--tl-line);
+    border-radius: var(--tl-radius-sm);
+    font-size: 12px;
+    color: var(--tl-ink-soft);
+    background: var(--tl-bg);
+}
+
+.tl-chartblock__canvas {
+    flex: 1;
+    min-width: 0;
+    height: 360px;
+    padding: 16px;
+    /* style.css's .chart draws heavy black axes — not wanted here. */
+    border: none;
+    margin: 0;
+}
+
+.tl-chartblock__canvas canvas { display: block; }
+
+/* Air-in-chamber gauge (Record a touch) */
+.tl-gauge {
+    width: 72px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 16px 0;
+    border-left: 1px solid var(--tl-line);
+}
+
+.tl-gauge__bar {
+    position: relative;
+    flex: 1;
+    width: 32px;
+    border: 1px solid var(--tl-ink);
+    border-radius: 4px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+}
+
+.tl-gauge__fill {
+    width: 100%;
+    background: var(--tl-ink);
+    transition: height 0.1s linear;
+}
+
+/* mix-blend-mode: difference makes the label auto-invert — black over the
+   unfilled white portion, white over the filled black portion. */
+.tl-gauge__label {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 11px;
+    color: #fff;
+    mix-blend-mode: difference;
+    writing-mode: vertical-rl;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+/* Max-volume side panel (Shape editor) */
+.tl-chartblock__side {
+    width: 110px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 16px;
+    border-left: 1px solid var(--tl-line);
+    text-align: center;
+}
+
+.tl-chartblock__side-label {
+    font-size: 12px;
+    color: var(--tl-ink-soft);
+    line-height: 1.3;
+}
+
+.tl-app .tl-chartblock__side-input {
+    width: 70px;
+    padding: 10px 8px;
+    border: 1px solid var(--tl-ink);
+    border-radius: var(--tl-radius-sm);
+    font-size: 14px;
+    text-align: center;
+    background: var(--tl-bg);
+    color: var(--tl-ink);
+}
+
+/* --------------------------------------------------------------------------
+   Step indicator (Record a touch → circumplex → media)
+   -------------------------------------------------------------------------- */
+
+.tl-titlerow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.tl-titlerow__left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.tl-steps {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 6px;
+}
+
+.tl-app .tl-step {
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    border: 1px solid var(--tl-line);
+    background: none;
+    color: var(--tl-ink-soft);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 0;
+    margin: 0;
+}
+
+.tl-app .tl-step.is-active {
+    background: var(--tl-ink);
+    color: var(--tl-bg);
+    border-color: var(--tl-ink);
+}
+
+/* --------------------------------------------------------------------------
+   Record a touch — open fields row
+   -------------------------------------------------------------------------- */
+
+.tl-fields {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+}
+
+/* space-between stretches the left column to match the textarea's height. */
+.tl-fields__left {
+    flex: 1;
+    min-width: 220px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.tl-fields__right {
+    flex: 2;
+    min-width: 260px;
+    display: flex;
+    flex-direction: column;
+}
+
+.tl-app .tl-fields__right .tl-textarea { flex: 1; }
+
+.tl-bottomrow {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+}
+
+.tl-bottomrow__grow { flex: 1; min-width: 200px; }
+
+/* --------------------------------------------------------------------------
+   Touch detail
+   -------------------------------------------------------------------------- */
+
+.tl-detail__titlerow {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.tl-detail__author {
+    font-size: 14px;
+    color: var(--tl-ink-soft);
+}
+
+.tl-detail__author strong {
+    color: var(--tl-ink);
+    font-weight: 700;
+}
+
+.tl-app .tl-detail__desc {
+    margin: 0;
+    font-family: var(--tl-font-body);
+    font-size: 16px;
+    font-weight: 400;
+    color: var(--tl-ink-soft);
+    line-height: 1.6;
+    max-width: 760px;
+}
+
+/* Waveform and mood square side by side, top-aligned; media goes full width
+   below them. */
+.tl-detail__row {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
+
+.tl-chartblock--detail {
+    flex: 3;
+    min-width: 320px;
+}
+
+.tl-chartblock__canvas--tall { height: 420px; }
+
+.tl-detail__aside {
+    flex: 1;
+    min-width: 220px;
+    max-width: 280px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    height: 420px;
+}
+
+.tl-panel--mood { padding: 16px; gap: 10px; }
+
+.tl-detail__feedback-note {
+    margin: 0;
+    font-family: var(--tl-font-body);
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--tl-ink-soft);
+    line-height: 1.5;
+}
+
+.tl-app .tl-detail__aside .tl-btn { padding: 12px 20px; }
+
+.tl-panel {
+    border: 1px solid var(--tl-line);
+    border-radius: var(--tl-radius);
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+}
+
+.tl-panel__label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--tl-ink-soft);
+}
+
+/* Square tile grid, four per row. Shared by the detail page's media panel
+   and step 3 of Create an entry. */
+.tl-tilegrid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+}
+
+.tl-app .tl-tile {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border: none;
+    border-radius: var(--tl-radius-sm);
+    overflow: hidden;
+    padding: 0;
+    margin: 0;
+    background-color: transparent;
+}
+
+.tl-app .tl-tile--clickable { cursor: pointer; }
+
+.tl-tile img,
+.tl-tile video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.tl-app .tl-tile--add {
+    border: 1px dashed var(--tl-line);
+    background: none;
+    color: var(--tl-ink-soft);
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.tl-app .tl-tile__remove {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: none;
+    background: var(--tl-ink);
+    color: var(--tl-bg);
+    font-size: 13px;
+    line-height: 1;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+}
+
+/* Step 3's grid is capped so the tiles stay a sensible size on wide screens. */
+.tl-page > .tl-stack > .tl-tilegrid { max-width: 720px; }
+
+/* Mood square + felt-sensation textarea sit side by side, not stacked. */
+.tl-moodrow {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
+
+.tl-moodrow__field {
+    flex: 1;
+    min-width: 220px;
+    display: flex;
+    flex-direction: column;
+    /* Matches the mood square's height rather than sitting at its own
+       natural rows= height. */
+    align-self: stretch;
+}
+
+.tl-app .tl-moodrow__field .tl-textarea { flex: 1; }
+
+/* ---- Lightbox ----------------------------------------------------------- */
+
+.tl-lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background: rgba(20, 20, 18, 0.92);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* No fade here on purpose: animating this full-screen overlay pushes it
+       onto its own compositing layer, where it renders washed out instead of
+       at its stated 92% opacity. The design doesn't call for a fade anyway. */
+}
+
+.tl-app .tl-lightbox__close {
+    position: absolute;
+    top: 24px;
+    right: 28px;
+    border: none;
+    background: none;
+    color: #fff;
+    font-size: 26px;
+    line-height: 1;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+}
+
+.tl-app .tl-lightbox__nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    background: none;
+    color: #fff;
+    font-size: 18px;
+    line-height: 1;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+}
+
+.tl-lightbox__nav--prev { left: 24px; }
+.tl-lightbox__nav--next { right: 24px; }
+
+.tl-lightbox__stage {
+    width: min(70vh, 80vw);
+    height: min(70vh, 80vw);
+    border-radius: var(--tl-radius);
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.tl-lightbox__stage img,
+.tl-lightbox__stage video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+}
+
+/* --------------------------------------------------------------------------
+   Media step (step 3) — minimal treatment with the new tokens; the screen
+   itself is still awaiting a design.
+   -------------------------------------------------------------------------- */
+
+.tl-dropzone {
+    border: 1px dashed var(--tl-line);
+    border-radius: var(--tl-radius);
+    padding: 40px 24px;
+    text-align: center;
+    color: var(--tl-ink-soft);
+    font-size: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.tl-dropzone.is-over { border-color: var(--tl-ink); }
+
+.tl-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 10px;
+}
+
+.tl-gallery__item {
+    aspect-ratio: 1 / 1;
+    border-radius: var(--tl-radius-sm);
+    overflow: hidden;
+    border: 1px solid var(--tl-line);
+}
+
+.tl-gallery__item img,
+.tl-gallery__item video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* --------------------------------------------------------------------------
+   Responsive
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 860px) {
+    .tl-detail__aside {
+        max-width: none;
+        height: auto;
+    }
+    .tl-chartblock { flex-direction: column; }
+    .tl-gauge {
+        width: 100%;
+        height: 72px;
+        flex-direction: row;
+        align-items: center;
+        padding: 0 16px;
+        border-left: none;
+        border-top: 1px solid var(--tl-line);
+    }
+    .tl-gauge__bar {
+        width: 100%;
+        flex: 1;
+        height: 32px;
+        flex-direction: row;
+        justify-content: flex-start;
+    }
+    .tl-gauge__fill { height: 100% !important; width: var(--tl-gauge-pct, 0%); }
+    .tl-gauge__label { writing-mode: horizontal-tb; }
+    .tl-chartblock__side {
+        width: 100%;
+        flex-direction: row;
+        border-left: none;
+        border-top: 1px solid var(--tl-line);
+    }
+}
+
+@media (max-width: 640px) {
+    :root {
+        --tl-page-pad-y: 24px;
+        --tl-page-pad-x: 16px;
+        --tl-section-gap: 22px;
+        --tl-card-gap: 16px;
+    }
+    .tl-nav { padding: 16px var(--tl-page-pad-x); }
+    .tl-nav__wordmark { font-size: 24px; }
+    .tl-h1 { font-size: 30px; }
+    .tl-card__title { font-size: 26px; }
+    .tl-tilegrid { grid-template-columns: repeat(2, 1fr); }
+    .tl-lightbox__nav--prev { left: 8px; }
+    .tl-lightbox__nav--next { right: 8px; }
+    .tl-lightbox__stage { width: min(70vh, 92vw); height: min(70vh, 92vw); }
+}

@@ -14,6 +14,8 @@ const SideMenu = observer(function (props) {
             midiAuth={props.model.midiAuth}
             midiInputName={props.model.selectedInput?.name}
             midiConnected={props.model.selectedInput?.state === "connected"}
+            userName={props.model.user?.displayName}
+            userImage={props.model.user?.photoURL}
             language={props.model.language}
             onLanguageChange={(lang) => props.model.setLanguage(lang)}
         />
