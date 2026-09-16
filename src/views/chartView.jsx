@@ -184,8 +184,9 @@ export function ScatterChartView(props) {
     console.log("Felt Sensation:", feltSensation);
     // Save to Firestore here!
     saveDataToFirestore(chartName, scatterData, feltSensation);
-    // For this example, we'll just simulate navigation to the home page.
-    window.location.hash = "#/"; // Navigate to the root path (home page)
+    // Step 2 of the record flow hands off to step 3 (media). The touch doc id
+    // is the touch name, which is what this screen was handed in the URL.
+    window.location.hash = `#/media/${encodeURIComponent(chartName)}`;
   };
 
   return (

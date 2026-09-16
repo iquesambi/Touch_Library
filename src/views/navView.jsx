@@ -1,38 +1,21 @@
 import "./style.css";
-import { t } from "./../i18n";
 
 export function NavView(props) {
     return (
-        <nav className="nav-bar">
-            {/* Hamburger menu button */}
-            <button className="nav-left" onClick={toggleACB}>
-                <span className="hamburger-icon">☰</span>
+        <nav className="tl-nav">
+            <button className="tl-nav__burger" onClick={toggleACB} aria-label="Menu">
+                <span></span>
+                <span></span>
+                <span></span>
             </button>
 
-            {/* Clickable text for the middle button */}
-            <button className="nav-center" onClick={clickACB}>
-               <h2> Touch Library</h2>
+            <button className="tl-nav__wordmark" onClick={clickACB}>
+                Touch Library
             </button>
 
-            {/* User profile on the right */}
-            <div className="nav-right">
-                {props.userImage ? (
-                    <div className="user-profile" onClick={props.onUserClick}>
-                        <img
-                            src={props.userImage}
-                            alt="User"
-                            className="user-image"
-                        />
-                        <span className="user-name">{props.userName}</span>
-                    </div>
-                ) : (
-                    <div className="login-container">
-                        <button className="login-button" onClick={props.onLoginClick}>
-                            {t("login", props.language)}
-                        </button>
-                    </div>
-                )}
-            </div>
+            {/* User identity lives at the bottom of the side menu now; this
+                spacer keeps the wordmark optically centred. */}
+            <div className="tl-nav__spacer" aria-hidden="true"></div>
         </nav>
     );
 
